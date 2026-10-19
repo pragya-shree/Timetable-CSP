@@ -36,18 +36,18 @@ In compliance with assignment regulations, AI assistance was utilized as a pair-
 
 ### 2.1 Variables ($X$) — `SessionVar`
 Each variable represents an atomic lecture or laboratory session that must be placed on the schedule grid:
-$$\text{SessionVar} = (\text{session\_id}, \text{class\_id}, \text{subject\_id}, \text{session\_no}, \text{teacher\_id}, \text{duration}, \text{session\_type})$$
+$$\text{SessionVar} = (\text{session ID}, \text{class ID}, \text{subject ID}, \text{session no}, \text{teacher ID}, \text{duration}, \text{session type})$$
 
 - **Theory Session**: Duration = 1 period. A subject with 3 weekly hours generates 3 distinct `SessionVar` instances (`session_no` $\in \{1, 2, 3\}$).
 - **Lab Session**: Duration = `lab_duration` (e.g. 2 periods). A lab with 2 weekly hours generates **one single session** occupying 2 consecutive periods. It is NOT modeled as two disconnected 1-hour sessions.
 
 ### 2.2 Domain Values ($D$) — `Placement`
 A placement value represents a specific coordinate in time and space:
-$$\text{Placement} = (day, start\_period, room\_id)$$
-- $day \in \{0, \dots, \text{days\_per\_week} - 1\}$
-- $start\_period \in \{0, \dots, \text{periods\_per\_day} - 1\}$
-- A session occupies periods $\{start\_period, start\_period + 1, \dots, start\_period + duration - 1\}$ on that day.
-- $room\_id \in \text{rooms}$
+$$\text{Placement} = (\text{day}, \text{start period}, \text{room ID})$$
+- $\text{day} \in \{0, \dots, \text{days per week} - 1\}$
+- $\text{start period} \in \{0, \dots, \text{periods per day} - 1\}$
+- A session occupies periods $\{p, p + 1, \dots, p + \text{duration} - 1\}$ on that day.
+- $\text{room ID} \in \text{rooms}$
 
 ### 2.3 Assignment & Timetable
 A timetable assignment is a mapping $\mathcal{A}: \text{SessionVar} \to \text{Placement} \cup \{\text{None}\}$.
@@ -67,12 +67,12 @@ Hard constraints represent physical and institutional impossibilities. A timetab
 | **H1** | Teacher Clash | **1 violation per conflicting pair of sessions per overlapping period**. If Teacher T is scheduled in 2 sessions simultaneously for 1 period = 1 violation. If a 2-period lab overlaps with another session on both periods = 2 violations. | Binary constraint. A teacher cannot physically be in two classrooms at the same time. |
 | **H2** | Class Clash | **1 violation per conflicting pair of sessions for the same class per overlapping period**. | Binary constraint. A student batch cannot attend two lectures at the same time. |
 | **H3** | Room Clash | **1 violation per conflicting pair of sessions in the same room per overlapping period**. | Binary constraint. A room cannot host two distinct sessions simultaneously. |
-| **H4** | Room Capacity | **1 violation per placed session** where $room.capacity < class.strength$. | Unary constraint. Overcrowded classrooms cannot seat all enrolled students. |
+| **H4** | Room Capacity | **1 violation per placed session** where `room.capacity < class.strength`. | Unary constraint. Overcrowded classrooms cannot seat all enrolled students. |
 | **H5** | Room Type | **1 violation per placed session** in an incompatible room (`lab` in classroom, or `theory` in lab). | Unary constraint. Labs require specialized equipment; theory lectures require standard lecture halls. |
 | **H6** | Teacher Availability & Blocked Slots | **1 violation per occupied slot** falling on a teacher's `unavailable_slots` OR a global `blocked_periods` (e.g., college assembly). | Unary constraint on time coordinates. |
-| **H7** | Weekly Syllabus Hours | **$\|assigned\_periods - required\_periods\|$ per (class, subject)**. Missing and extra periods both count. Unassigned sessions contribute directly as missing periods. | Quota constraint ensuring complete syllabus coverage. An empty timetable has violations equal to total required periods. |
-| **H8** | Teacher Max Weekly Load | **$\max(0, total\_assigned\_periods - teacher.max\_weekly\_load)$** per teacher. | Workload limit protecting faculty from overwork (a 2-period lab adds 2 periods towards load). |
-| **H9** | Class Lunch Break | **1 violation per occupied slot** falling on $class.lunch\_slot$. | Institutional policy ensuring students have a daily dedicated lunch break. |
+| **H7** | Weekly Syllabus Hours | **$|\text{assigned periods} - \text{required periods}|$ per (class, subject)**. Missing and extra periods both count. Unassigned sessions contribute directly as missing periods. | Quota constraint ensuring complete syllabus coverage. An empty timetable has violations equal to total required periods. |
+| **H8** | Teacher Max Weekly Load | **$\max(0, \text{assigned periods} - \text{max weekly load})$** per teacher. | Workload limit protecting faculty from overwork (a 2-period lab adds 2 periods towards load). |
+| **H9** | Class Lunch Break | **1 violation per occupied slot** falling on `class.lunch_slot`. | Institutional policy ensuring students have a daily dedicated lunch break. |
 | **STRUCT** | Structural Validity | **1 violation per occurrence**: out-of-bounds day/period, multi-period session overflowing the end of the day, unknown entity ID, or teacher assigned to a subject they are not qualified to teach. | Ensures data integrity and prevents silent out-of-bounds corruption. |
 
 ---
@@ -86,7 +86,7 @@ Soft penalties are computed strictly on placed sessions:
 - **S1: Minimize Gaps in Class Day**
   - Identifies idle waiting periods between the first and last occupied lecture for each class on each day.
   - **Exclusions**: The class's designated `lunch_slot` and any global `blocked_periods` are **not** counted as gaps.
-  - Penalty: $\text{idle\_gap\_periods} \times w_{s1}$.
+  - Penalty: $\text{idle gap periods} \times w_{s1}$.
 - **S2: Spread Subject Lectures Across Days**
   - Encourages spaced learning by penalizing multiple theory lectures of the same subject on the same day.
   - If class $C$ has $k > 1$ theory lectures of subject $S$ on day $D$, penalty is $(k - 1) \times w_{s2}$.
@@ -96,10 +96,10 @@ Soft penalties are computed strictly on placed sessions:
   - S3 explicitly flags and penalizes:
     1. A lab placement that is interrupted by a class lunch break or a global blocked period.
     2. Multiple lab sessions of the same subject on the same day placed with idle periods between them.
-  - Penalty: $\text{interrupted\_or\_separated\_slots} \times w_{s3}$.
+  - Penalty: $\text{interrupted or separated slots} \times w_{s3}$.
 
 ### 4.2 Objective Cost Function
-$$\text{Total Cost} = 1000 \times \text{hard\_violation\_count} + (w_{s1} \cdot S_1 + w_{s2} \cdot S_2 + w_{s3} \cdot S_3)$$
+$$\text{Total Cost} = 1000 \times \text{hard violations} + (w_{s1} \cdot S_1 + w_{s2} \cdot S_2 + w_{s3} \cdot S_3)$$
 - Default weights: $w_{s1} = 1, w_{s2} = 1, w_{s3} = 1$ (customizable via `SoftWeights`).
 - Hard violations dominate the cost function ($1000 \times$), ensuring that any feasible timetable is strictly preferred over an infeasible one.
 - Returns a complete `CostBreakdown` exposing hard cost, individual soft costs, and validity flags.
@@ -123,8 +123,8 @@ $$\text{Total Cost} = 1000 \times \text{hard\_violation\_count} + (w_{s1} \cdot 
 ### 5.2 Programmatic Feasibility Sanity Checks
 Both datasets pass programmatic mathematical solvability assertions in `core/models.py` (`check_dataset_feasibility`):
 1. **Teacher Qualification**: Every subject has $\ge 1$ qualified teacher; every class requirement binds a qualified teacher.
-2. **Workload Feasibility**: For every teacher, $\text{assigned\_periods} \le \text{max\_weekly\_load}$ and $\le \text{available\_slots}$.
-3. **Class Feasibility**: For every class, $\text{required\_periods} \le (\text{days} \times \text{periods} - \text{lunch} - \text{blocked})$.
+2. **Workload Feasibility**: For every teacher, $\text{assigned periods} \le \text{max weekly load}$ and $\le \text{available slots}$.
+3. **Class Feasibility**: For every class, $\text{required periods} \le (\text{days} \times \text{periods} - \text{lunch} - \text{blocked})$.
 4. **Room Capacity**: For every class, there exists at least one classroom and at least one lab with $capacity \ge strength$.
 5. **Aggregate Venue Capacity**: Total required theory and lab periods are strictly less than total classroom and lab slot capacities.
 
@@ -213,7 +213,7 @@ The project implements four systematic constructive search configurations for th
    - Teacher availability (no placement on teacher's `unavailable_slots`).
    - Class lunch breaks (no placement during class `lunch_slot`).
    - Global blocked periods (no placement during college breaks).
-   - Daily boundary fitting ($start\_period + duration \le periods\_per\_day$).
+   - Daily boundary fitting (`start_period + duration <= periods_per_day`).
 3. **Empty Domain Check**: If any variable has an empty initial domain, the problem is immediately proven **unsatisfiable** without wasted search.
 4. **Dynamic Variable Selection**:
    - **Plain Backtracking (`use_mrv=False, use_degree=False, use_fc=False`)**: Evaluates unassigned variables in static dataset generation order.
@@ -241,9 +241,9 @@ The project implements four systematic constructive search configurations for th
    - *Theoretical Limitation*: Forward Checking checks the direct consequences of the *current* assignment against unassigned variables (1-step lookahead). It does **not** guarantee global consistency, because it does not propagate constraints between two unassigned variables (which would require AC-3 or MAC).
 6. **Exact Definition of Degree**:
    Two distinct session variables $V_A$ and $V_B$ share a binary constraint edge in the CSP graph if there exists at least one pair of placements $(p_A \in Domain(V_A), p_B \in Domain(V_B))$ that can overlap in time and conflict on:
-   - **H1 (Teacher)**: $V_A.teacher\_id == V_B.teacher\_id$.
-   - **H2 (Class)**: $V_A.class\_id == V_B.class\_id$.
-   - **H3 (Room)**: $p_A.room\_id == p_B.room\_id$.
+   - **H1 (Teacher)**: `V_A.teacher_id == V_B.teacher_id`.
+   - **H2 (Class)**: `V_A.class_id == V_B.class_id`.
+   - **H3 (Room)**: `p_A.room_id == p_B.room_id`.
    Multi-period lab durations are accounted for across all occupied periods. Variables with disjoint rooms (theory vs. lab) and distinct teachers/classes have **no edge** between them.
 7. **Final Authority**: When all variables are assigned, `validate_timetable(tt)` from `core.constraints` runs full verification against all constraints H1–H9 and STRUCT.
 
@@ -352,10 +352,10 @@ In addition to constructive backtracking search, the project implements **Algori
 
 2. **Conflict Scoring Function**:
    - For a candidate placement $P$ of variable $V$, the conflict score calculates the exact number of atomic binary collisions introduced with all **other** placed variables $U \neq V$ across all occupied slots $(day, period)$:
-     * **H1 (Teacher Clash)**: Number of other sessions sharing $V.teacher\_id$ at that slot.
-     * **H2 (Class Clash)**: Number of other sessions sharing $V.class\_id$ at that slot.
-     * **H3 (Room Clash)**: Number of other sessions sharing $P.room\_id$ at that slot.
-   - **Multi-Period Lab Accounting**: For multi-period sessions (e.g., 2-period labs), conflicts are evaluated across all occupied slots: $(day, start\_period)$ and $(day, start\_period + 1)$.
+     * **H1 (Teacher Clash)**: Number of other sessions sharing `V.teacher_id` at that slot.
+     * **H2 (Class Clash)**: Number of other sessions sharing `V.class_id` at that slot.
+     * **H3 (Room Clash)**: Number of other sessions sharing `P.room_id` at that slot.
+   - **Multi-Period Lab Accounting**: For multi-period sessions (e.g., 2-period labs), conflicts are evaluated across all occupied slots: `(day, start_period)` and `(day, start_period + 1)`.
    - **Self-Exclusion**: Variable $V$ is temporarily removed from the occupancy counters before evaluating candidate placements, preventing $V$ from conflicting with itself.
 
 3. **Iterative Local Repair**:
@@ -368,7 +368,7 @@ In addition to constructive backtracking search, the project implements **Algori
 
 4. **Plateau Escaping & Cycle Prevention**:
    - Local search algorithms can get trapped on local plateaus where no single move strictly decreases conflicts. Min-Conflicts employs three complementary plateau-escaping mechanisms:
-     * **Random Walk**: With probability $p_{walk} = 0.05$, the solver selects a random legal placement from the variable's domain instead of a greedy minimum-conflict placement.
+     * **Random Walk**: With probability $p_{\text{walk}} = 0.05$, the solver selects a random legal placement from the variable's domain instead of a greedy minimum-conflict placement.
      * **Stagnation Perturbation**: If the best conflict count fails to improve for `stagnation_limit = 150` consecutive iterations, the solver forces a random perturbation on a conflicted variable.
      * **Non-stationary Preference**: When multiple placements achieve the same minimum conflict score, the solver preferentially chooses an alternative placement over the current placement to avoid zero-progress stationary steps.
 
@@ -642,16 +642,16 @@ When explaining this implementation to the examiner in your viva:
    *A*: Unary constraints depend only on a single variable's assignment: H4 (Room capacity vs Class strength), H5 (Room type vs Session type), and H6 (Teacher availability vs Slot). Binary constraints depend on relationships between pairs of variables: H1 (Teacher conflict), H2 (Class conflict), and H3 (Room conflict).
 
 3. **Q: Why does an empty timetable have non-zero hard violations?**  
-   *A*: Because of constraint H7 (Weekly Syllabus Hours). H7 measures $|assigned\_periods - required\_periods|$. If a subject requires 4 hours and 0 are assigned, there are 4 missing period violations. This prevents incomplete or empty timetables from ever being marked valid.
+   *A*: Because of constraint H7 (Weekly Syllabus Hours). H7 measures $|\text{assigned periods} - \text{required periods}|$. If a subject requires 4 hours and 0 are assigned, there are 4 missing period violations. This prevents incomplete or empty timetables from ever being marked valid.
 
 4. **Q: How does the cost function prioritize hard constraints over soft constraints?**  
-   *A*: The hard violation multiplier is set to 1000 ($1000 \times \text{hard\_violations}$). Even if a timetable has several soft penalties (e.g. 5 gaps $\times 1 = 5$), a single hard violation ($1000$) immediately incurs a far greater penalty, strictly directing local search or heuristics away from infeasible states.
+   *A*: The hard violation multiplier is set to 1000 ($1000 \times \text{hard violations}$). Even if a timetable has several soft penalties (e.g. 5 gaps $\times 1 = 5$), a single hard violation ($1000$) immediately incurs a far greater penalty, strictly directing local search or heuristics away from infeasible states.
 
 5. **Q: What is Forward Checking and how does it differ from Plain Backtracking and MRV?**  
    *A*: Plain Backtracking tests constraints only when assigning a variable. Backtracking + MRV counts remaining legal values dynamically before selecting a variable, but re-evaluates them on the fly. Forward Checking maintains active variable domains persistently: whenever variable $X$ is assigned value $v$, it immediately prunes conflicting values from the domains of all unassigned neighbors. If any neighbor's domain becomes empty (domain wipeout), the assignment is immediately rejected without searching deeper.
 
 6. **Q: Why did Forward Checking speed up MRV search so significantly?**  
-   *A*: Without Forward Checking, MRV must iterate through all valid placements of every unassigned variable at every node to check dynamic collision constraints, costing $O(|V_{unassigned}| \times |D|)$ checks per node. With Forward Checking, legal domains are already maintained in `current_domains`, allowing $O(1)$ length lookups (`len(current_domains[v])`).
+   *A*: Without Forward Checking, MRV must iterate through all valid placements of every unassigned variable at every node to check dynamic collision constraints, costing $O(|V_{\text{unassigned}}| \times |D|)$ checks per node. With Forward Checking, legal domains are already maintained in `current_domains`, allowing $O(1)$ length lookups (`len(current_domains[v])`).
 
 7. **Q: Does Forward Checking guarantee global consistency?**  
    *A*: No. Forward Checking only ensures arc consistency between the *assigned* variable and its unassigned neighbors (1-step lookahead). It does not detect inconsistencies that exist between pairs of *unassigned* variables. To detect two unassigned variables whose remaining values conflict with each other before making an assignment, full Arc Consistency (e.g. AC-3 or Maintaining Arc Consistency - MAC) would be required.
@@ -663,7 +663,7 @@ When explaining this implementation to the examiner in your viva:
    *A*: No. Min-Conflicts is an **incomplete** local search algorithm. If a timetable instance has no mathematically feasible schedule, Min-Conflicts will simply run until `max_iterations` expires and return `limit_reached`. To prove unsatisfiability, a complete search algorithm such as Backtracking (or Backtracking + FC) is required.
 
 10. **Q: How does Min-Conflicts avoid getting stuck in local minima or plateaus?**  
-    *A*: It employs three mechanisms: (1) Random walk with probability $p_{walk} = 0.05$ to explore non-greedy moves; (2) Stagnation detection that forces a random perturbation if the best conflict count does not improve for 150 consecutive steps; and (3) Non-stationary tie-breaking that prefers an alternative minimum-conflict placement over remaining stationary on flat plateaus.
+    *A*: It employs three mechanisms: (1) Random walk with probability $p_{\text{walk}} = 0.05$ to explore non-greedy moves; (2) Stagnation detection that forces a random perturbation if the best conflict count does not improve for 150 consecutive steps; and (3) Non-stationary tie-breaking that prefers an alternative minimum-conflict placement over remaining stationary on flat plateaus.
 
 11. **Q: How does the Streamlit manual edit feature work?**  
     *A*: The user selects a placed session and a new (day, period, room) from the unary-valid domain. The candidate timetable is validated against all H1-H9 constraints. If any violations exist, the edit is rejected with the specific violations displayed. Valid edits are applied and the cost is immediately recalculated and shown.
