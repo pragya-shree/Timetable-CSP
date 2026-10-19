@@ -1,0 +1,255 @@
+{
+  "name": "Small Academic Dataset",
+  "time_structure": {
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
+    "periods_per_day": 6,
+    "blocked_periods": [
+      [
+        0,
+        0
+      ]
+    ]
+  },
+  "subjects": [
+    {
+      "id": "CS101",
+      "name": "Programming Fundamentals",
+      "weekly_periods": 4,
+      "type": "theory"
+    },
+    {
+      "id": "CS102",
+      "name": "Data Structures",
+      "weekly_periods": 4,
+      "type": "theory"
+    },
+    {
+      "id": "EC101",
+      "name": "Basic Electronics",
+      "weekly_periods": 4,
+      "type": "theory"
+    },
+    {
+      "id": "MA101",
+      "name": "Engineering Mathematics",
+      "weekly_periods": 4,
+      "type": "theory"
+    },
+    {
+      "id": "CS101_LAB",
+      "name": "Programming Lab",
+      "weekly_periods": 2,
+      "type": "lab",
+      "lab_duration": 2
+    }
+  ],
+  "teachers": [
+    {
+      "id": "T1",
+      "name": "Prof. Alan Turing",
+      "subject_ids": [
+        "CS101"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          5
+        ]
+      ],
+      "max_weekly_load": 14
+    },
+    {
+      "id": "T2",
+      "name": "Prof. Ada Lovelace",
+      "subject_ids": [
+        "CS102"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          4
+        ]
+      ],
+      "max_weekly_load": 14
+    },
+    {
+      "id": "T3",
+      "name": "Prof. Claude Shannon",
+      "subject_ids": [
+        "EC101"
+      ],
+      "unavailable_slots": [
+        [
+          2,
+          5
+        ]
+      ],
+      "max_weekly_load": 14
+    },
+    {
+      "id": "T4",
+      "name": "Prof. John von Neumann",
+      "subject_ids": [
+        "MA101"
+      ],
+      "unavailable_slots": [
+        [
+          3,
+          5
+        ]
+      ],
+      "max_weekly_load": 14
+    },
+    {
+      "id": "T5",
+      "name": "Prof. Grace Hopper",
+      "subject_ids": [
+        "MA101",
+        "CS101"
+      ],
+      "unavailable_slots": [
+        [
+          1,
+          5
+        ]
+      ],
+      "max_weekly_load": 14
+    },
+    {
+      "id": "T6",
+      "name": "Prof. Dennis Ritchie",
+      "subject_ids": [
+        "CS101_LAB"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ],
+      "max_weekly_load": 14
+    }
+  ],
+  "rooms": [
+    {
+      "id": "CR1",
+      "name": "Classroom 1",
+      "capacity": 40,
+      "type": "classroom"
+    },
+    {
+      "id": "CR2",
+      "name": "Classroom 2",
+      "capacity": 40,
+      "type": "classroom"
+    },
+    {
+      "id": "CR3",
+      "name": "Classroom 3",
+      "capacity": 30,
+      "type": "classroom"
+    },
+    {
+      "id": "LAB1",
+      "name": "Computing Lab 1",
+      "capacity": 35,
+      "type": "lab"
+    }
+  ],
+  "classes": [
+    {
+      "id": "CSE_A",
+      "name": "Computer Science A",
+      "strength": 30,
+      "lunch_slot": 3,
+      "subjects": [
+        {
+          "subject_id": "CS101",
+          "teacher_id": "T1",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "CS102",
+          "teacher_id": "T2",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "MA101",
+          "teacher_id": "T4",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "CS101_LAB",
+          "teacher_id": "T6",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "CSE_B",
+      "name": "Computer Science B",
+      "strength": 35,
+      "lunch_slot": 3,
+      "subjects": [
+        {
+          "subject_id": "CS101",
+          "teacher_id": "T1",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "CS102",
+          "teacher_id": "T2",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "MA101",
+          "teacher_id": "T4",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "CS101_LAB",
+          "teacher_id": "T6",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "ECE_A",
+      "name": "Electronics A",
+      "strength": 25,
+      "lunch_slot": 4,
+      "subjects": [
+        {
+          "subject_id": "EC101",
+          "teacher_id": "T3",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "MA101",
+          "teacher_id": "T5",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "CS101",
+          "teacher_id": "T5",
+          "weekly_periods": 4
+        },
+        {
+          "subject_id": "CS101_LAB",
+          "teacher_id": "T6",
+          "weekly_periods": 2
+        }
+      ]
+    }
+  ]
+}

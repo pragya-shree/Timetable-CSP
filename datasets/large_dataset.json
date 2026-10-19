@@ -1,0 +1,611 @@
+{
+  "name": "Large Academic Dataset",
+  "time_structure": {
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
+    "periods_per_day": 7,
+    "blocked_periods": [
+      [
+        0,
+        0
+      ]
+    ]
+  },
+  "subjects": [
+    {
+      "id": "CS201",
+      "name": "Data Structures",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "CS202",
+      "name": "Algorithms",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "AI201",
+      "name": "Artificial Intelligence",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "AI202",
+      "name": "Machine Learning",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "EC201",
+      "name": "Digital Logic",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "EC202",
+      "name": "Signals & Systems",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "IT201",
+      "name": "Database Management",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "MA201",
+      "name": "Discrete Mathematics",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "CS201_LAB",
+      "name": "Data Structures Lab",
+      "weekly_periods": 2,
+      "type": "lab",
+      "lab_duration": 2
+    },
+    {
+      "id": "EC201_LAB",
+      "name": "Digital Logic Lab",
+      "weekly_periods": 2,
+      "type": "lab",
+      "lab_duration": 2
+    }
+  ],
+  "teachers": [
+    {
+      "id": "T01",
+      "name": "Prof. A. Smith",
+      "subject_ids": [
+        "CS201"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          4
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T02",
+      "name": "Prof. B. Jones",
+      "subject_ids": [
+        "CS202"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          4
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T03",
+      "name": "Prof. C. Davis",
+      "subject_ids": [
+        "AI201"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          4
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T04",
+      "name": "Prof. D. Miller",
+      "subject_ids": [
+        "AI202"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          5
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T05",
+      "name": "Prof. E. Wilson",
+      "subject_ids": [
+        "EC201"
+      ],
+      "unavailable_slots": [
+        [
+          0,
+          2
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T06",
+      "name": "Prof. F. Moore",
+      "subject_ids": [
+        "EC202"
+      ],
+      "unavailable_slots": [
+        [
+          0,
+          2
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T07",
+      "name": "Prof. G. Taylor",
+      "subject_ids": [
+        "IT201"
+      ],
+      "unavailable_slots": [
+        [
+          0,
+          2
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T08",
+      "name": "Prof. H. Anderson",
+      "subject_ids": [
+        "MA201"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          5
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T09",
+      "name": "Prof. I. Thomas",
+      "subject_ids": [
+        "MA201"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          5
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T10",
+      "name": "Prof. J. Jackson",
+      "subject_ids": [
+        "MA201"
+      ],
+      "unavailable_slots": [
+        [
+          0,
+          2
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T11",
+      "name": "Prof. K. White",
+      "subject_ids": [
+        "MA201"
+      ],
+      "unavailable_slots": [
+        [
+          0,
+          2
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T12",
+      "name": "Prof. L. Harris",
+      "subject_ids": [
+        "CS201"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          5
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T13",
+      "name": "Prof. M. Martin",
+      "subject_ids": [
+        "AI201"
+      ],
+      "unavailable_slots": [
+        [
+          4,
+          5
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T14",
+      "name": "Prof. N. Clark",
+      "subject_ids": [
+        "CS201_LAB"
+      ],
+      "unavailable_slots": [
+        [
+          0,
+          2
+        ]
+      ],
+      "max_weekly_load": 16
+    },
+    {
+      "id": "T15",
+      "name": "Prof. O. Lewis",
+      "subject_ids": [
+        "EC201_LAB"
+      ],
+      "unavailable_slots": [
+        [
+          0,
+          2
+        ]
+      ],
+      "max_weekly_load": 16
+    }
+  ],
+  "rooms": [
+    {
+      "id": "CR101",
+      "name": "Lecture Hall 101",
+      "capacity": 60,
+      "type": "classroom"
+    },
+    {
+      "id": "CR102",
+      "name": "Lecture Hall 102",
+      "capacity": 60,
+      "type": "classroom"
+    },
+    {
+      "id": "CR103",
+      "name": "Lecture Hall 103",
+      "capacity": 55,
+      "type": "classroom"
+    },
+    {
+      "id": "CR104",
+      "name": "Lecture Hall 104",
+      "capacity": 50,
+      "type": "classroom"
+    },
+    {
+      "id": "CR105",
+      "name": "Lecture Hall 105",
+      "capacity": 45,
+      "type": "classroom"
+    },
+    {
+      "id": "CR106",
+      "name": "Lecture Hall 106",
+      "capacity": 40,
+      "type": "classroom"
+    },
+    {
+      "id": "LAB201",
+      "name": "Computing Lab A",
+      "capacity": 60,
+      "type": "lab"
+    },
+    {
+      "id": "LAB202",
+      "name": "Electronics Lab B",
+      "capacity": 50,
+      "type": "lab"
+    }
+  ],
+  "classes": [
+    {
+      "id": "CSE_2A",
+      "name": "CSE Year 2 Sec A",
+      "strength": 55,
+      "lunch_slot": 3,
+      "subjects": [
+        {
+          "subject_id": "CS201",
+          "teacher_id": "T01",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS202",
+          "teacher_id": "T02",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T08",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "AI201",
+          "teacher_id": "T13",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201_LAB",
+          "teacher_id": "T14",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "CSE_2B",
+      "name": "CSE Year 2 Sec B",
+      "strength": 50,
+      "lunch_slot": 3,
+      "subjects": [
+        {
+          "subject_id": "CS201",
+          "teacher_id": "T01",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS202",
+          "teacher_id": "T02",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T08",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "AI201",
+          "teacher_id": "T13",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201_LAB",
+          "teacher_id": "T14",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "AI_2A",
+      "name": "AI Year 2 Sec A",
+      "strength": 45,
+      "lunch_slot": 3,
+      "subjects": [
+        {
+          "subject_id": "AI201",
+          "teacher_id": "T03",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "AI202",
+          "teacher_id": "T04",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T09",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201",
+          "teacher_id": "T12",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201_LAB",
+          "teacher_id": "T14",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "AI_2B",
+      "name": "AI Year 2 Sec B",
+      "strength": 40,
+      "lunch_slot": 3,
+      "subjects": [
+        {
+          "subject_id": "AI201",
+          "teacher_id": "T03",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "AI202",
+          "teacher_id": "T04",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T09",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201",
+          "teacher_id": "T12",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201_LAB",
+          "teacher_id": "T14",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "ECE_2A",
+      "name": "ECE Year 2 Sec A",
+      "strength": 50,
+      "lunch_slot": 4,
+      "subjects": [
+        {
+          "subject_id": "EC201",
+          "teacher_id": "T05",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "EC202",
+          "teacher_id": "T06",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T10",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201",
+          "teacher_id": "T01",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "EC201_LAB",
+          "teacher_id": "T15",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "ECE_2B",
+      "name": "ECE Year 2 Sec B",
+      "strength": 45,
+      "lunch_slot": 4,
+      "subjects": [
+        {
+          "subject_id": "EC201",
+          "teacher_id": "T05",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "EC202",
+          "teacher_id": "T06",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T10",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201",
+          "teacher_id": "T01",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "EC201_LAB",
+          "teacher_id": "T15",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "IT_2A",
+      "name": "IT Year 2 Sec A",
+      "strength": 40,
+      "lunch_slot": 4,
+      "subjects": [
+        {
+          "subject_id": "IT201",
+          "teacher_id": "T07",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS202",
+          "teacher_id": "T02",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T11",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "AI201",
+          "teacher_id": "T03",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201_LAB",
+          "teacher_id": "T14",
+          "weekly_periods": 2
+        }
+      ]
+    },
+    {
+      "id": "IT_2B",
+      "name": "IT Year 2 Sec B",
+      "strength": 35,
+      "lunch_slot": 4,
+      "subjects": [
+        {
+          "subject_id": "IT201",
+          "teacher_id": "T07",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS202",
+          "teacher_id": "T02",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "MA201",
+          "teacher_id": "T11",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "AI201",
+          "teacher_id": "T03",
+          "weekly_periods": 3
+        },
+        {
+          "subject_id": "CS201_LAB",
+          "teacher_id": "T14",
+          "weekly_periods": 2
+        }
+      ]
+    }
+  ]
+}

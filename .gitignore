@@ -42,3 +42,10 @@ experiments/_gen_test.py
 dist/
 build/
 *.egg-info/
+
+# Experiment result artifacts (large data, images)
+experiments/results/
+
+# Documentation PDFs (optional)
+*.pdf
+

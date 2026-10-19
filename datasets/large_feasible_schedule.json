@@ -1,0 +1,1046 @@
+{
+  "dataset_name": "Large Academic Dataset",
+  "is_complete": true,
+  "placements": [
+    {
+      "session_id": "CSE_2A_CS201_LAB_s1",
+      "class_id": "CSE_2A",
+      "subject_id": "CS201_LAB",
+      "session_no": 1,
+      "teacher_id": "T14",
+      "day": 1,
+      "start_period": 1,
+      "room_id": "LAB201"
+    },
+    {
+      "session_id": "CSE_2B_CS201_LAB_s1",
+      "class_id": "CSE_2B",
+      "subject_id": "CS201_LAB",
+      "session_no": 1,
+      "teacher_id": "T14",
+      "day": 2,
+      "start_period": 1,
+      "room_id": "LAB201"
+    },
+    {
+      "session_id": "AI_2A_CS201_LAB_s1",
+      "class_id": "AI_2A",
+      "subject_id": "CS201_LAB",
+      "session_no": 1,
+      "teacher_id": "T14",
+      "day": 3,
+      "start_period": 1,
+      "room_id": "LAB201"
+    },
+    {
+      "session_id": "AI_2B_CS201_LAB_s1",
+      "class_id": "AI_2B",
+      "subject_id": "CS201_LAB",
+      "session_no": 1,
+      "teacher_id": "T14",
+      "day": 4,
+      "start_period": 1,
+      "room_id": "LAB201"
+    },
+    {
+      "session_id": "IT_2A_CS201_LAB_s1",
+      "class_id": "IT_2A",
+      "subject_id": "CS201_LAB",
+      "session_no": 1,
+      "teacher_id": "T14",
+      "day": 1,
+      "start_period": 5,
+      "room_id": "LAB201"
+    },
+    {
+      "session_id": "IT_2B_CS201_LAB_s1",
+      "class_id": "IT_2B",
+      "subject_id": "CS201_LAB",
+      "session_no": 1,
+      "teacher_id": "T14",
+      "day": 2,
+      "start_period": 5,
+      "room_id": "LAB201"
+    },
+    {
+      "session_id": "ECE_2A_EC201_LAB_s1",
+      "class_id": "ECE_2A",
+      "subject_id": "EC201_LAB",
+      "session_no": 1,
+      "teacher_id": "T15",
+      "day": 3,
+      "start_period": 5,
+      "room_id": "LAB202"
+    },
+    {
+      "session_id": "ECE_2B_EC201_LAB_s1",
+      "class_id": "ECE_2B",
+      "subject_id": "EC201_LAB",
+      "session_no": 1,
+      "teacher_id": "T15",
+      "day": 4,
+      "start_period": 5,
+      "room_id": "LAB202"
+    },
+    {
+      "session_id": "CSE_2A_CS201_s1",
+      "class_id": "CSE_2A",
+      "subject_id": "CS201",
+      "session_no": 1,
+      "teacher_id": "T01",
+      "day": 0,
+      "start_period": 1,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_CS202_s1",
+      "class_id": "CSE_2B",
+      "subject_id": "CS202",
+      "session_no": 1,
+      "teacher_id": "T02",
+      "day": 0,
+      "start_period": 1,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_CS202_s1",
+      "class_id": "CSE_2A",
+      "subject_id": "CS202",
+      "session_no": 1,
+      "teacher_id": "T02",
+      "day": 0,
+      "start_period": 2,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_MA201_s1",
+      "class_id": "CSE_2B",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T08",
+      "day": 0,
+      "start_period": 2,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_MA201_s1",
+      "class_id": "CSE_2A",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T08",
+      "day": 0,
+      "start_period": 4,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_AI201_s1",
+      "class_id": "CSE_2B",
+      "subject_id": "AI201",
+      "session_no": 1,
+      "teacher_id": "T13",
+      "day": 0,
+      "start_period": 4,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2B_CS201_s1",
+      "class_id": "CSE_2B",
+      "subject_id": "CS201",
+      "session_no": 1,
+      "teacher_id": "T01",
+      "day": 1,
+      "start_period": 1,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2B_CS202_s2",
+      "class_id": "CSE_2B",
+      "subject_id": "CS202",
+      "session_no": 2,
+      "teacher_id": "T02",
+      "day": 1,
+      "start_period": 2,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_AI201_s1",
+      "class_id": "CSE_2A",
+      "subject_id": "AI201",
+      "session_no": 1,
+      "teacher_id": "T13",
+      "day": 1,
+      "start_period": 4,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_MA201_s2",
+      "class_id": "CSE_2B",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T08",
+      "day": 1,
+      "start_period": 4,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_CS201_s2",
+      "class_id": "CSE_2A",
+      "subject_id": "CS201",
+      "session_no": 2,
+      "teacher_id": "T01",
+      "day": 2,
+      "start_period": 1,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2A_CS202_s2",
+      "class_id": "CSE_2A",
+      "subject_id": "CS202",
+      "session_no": 2,
+      "teacher_id": "T02",
+      "day": 2,
+      "start_period": 2,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2A_MA201_s2",
+      "class_id": "CSE_2A",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T08",
+      "day": 2,
+      "start_period": 4,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_AI201_s2",
+      "class_id": "CSE_2B",
+      "subject_id": "AI201",
+      "session_no": 2,
+      "teacher_id": "T13",
+      "day": 2,
+      "start_period": 4,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_AI201_s2",
+      "class_id": "CSE_2A",
+      "subject_id": "AI201",
+      "session_no": 2,
+      "teacher_id": "T13",
+      "day": 3,
+      "start_period": 1,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_CS201_s2",
+      "class_id": "CSE_2B",
+      "subject_id": "CS201",
+      "session_no": 2,
+      "teacher_id": "T01",
+      "day": 3,
+      "start_period": 1,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_CS201_s3",
+      "class_id": "CSE_2A",
+      "subject_id": "CS201",
+      "session_no": 3,
+      "teacher_id": "T01",
+      "day": 3,
+      "start_period": 2,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_CS202_s3",
+      "class_id": "CSE_2B",
+      "subject_id": "CS202",
+      "session_no": 3,
+      "teacher_id": "T02",
+      "day": 3,
+      "start_period": 2,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_CS202_s3",
+      "class_id": "CSE_2A",
+      "subject_id": "CS202",
+      "session_no": 3,
+      "teacher_id": "T02",
+      "day": 3,
+      "start_period": 4,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_MA201_s3",
+      "class_id": "CSE_2B",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T08",
+      "day": 3,
+      "start_period": 4,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_MA201_s3",
+      "class_id": "CSE_2A",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T08",
+      "day": 4,
+      "start_period": 1,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_AI201_s3",
+      "class_id": "CSE_2B",
+      "subject_id": "AI201",
+      "session_no": 3,
+      "teacher_id": "T13",
+      "day": 4,
+      "start_period": 1,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "CSE_2A_AI201_s3",
+      "class_id": "CSE_2A",
+      "subject_id": "AI201",
+      "session_no": 3,
+      "teacher_id": "T13",
+      "day": 4,
+      "start_period": 2,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "CSE_2B_CS201_s3",
+      "class_id": "CSE_2B",
+      "subject_id": "CS201",
+      "session_no": 3,
+      "teacher_id": "T01",
+      "day": 4,
+      "start_period": 2,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "AI_2A_AI201_s1",
+      "class_id": "AI_2A",
+      "subject_id": "AI201",
+      "session_no": 1,
+      "teacher_id": "T03",
+      "day": 0,
+      "start_period": 1,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_AI202_s1",
+      "class_id": "AI_2B",
+      "subject_id": "AI202",
+      "session_no": 1,
+      "teacher_id": "T04",
+      "day": 0,
+      "start_period": 1,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_AI202_s1",
+      "class_id": "AI_2A",
+      "subject_id": "AI202",
+      "session_no": 1,
+      "teacher_id": "T04",
+      "day": 0,
+      "start_period": 2,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_MA201_s1",
+      "class_id": "AI_2B",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T09",
+      "day": 0,
+      "start_period": 2,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_MA201_s1",
+      "class_id": "AI_2A",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T09",
+      "day": 0,
+      "start_period": 4,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_CS201_s1",
+      "class_id": "AI_2B",
+      "subject_id": "CS201",
+      "session_no": 1,
+      "teacher_id": "T12",
+      "day": 0,
+      "start_period": 4,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_AI201_s2",
+      "class_id": "AI_2A",
+      "subject_id": "AI201",
+      "session_no": 2,
+      "teacher_id": "T03",
+      "day": 1,
+      "start_period": 1,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_AI202_s2",
+      "class_id": "AI_2B",
+      "subject_id": "AI202",
+      "session_no": 2,
+      "teacher_id": "T04",
+      "day": 1,
+      "start_period": 1,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_AI202_s2",
+      "class_id": "AI_2A",
+      "subject_id": "AI202",
+      "session_no": 2,
+      "teacher_id": "T04",
+      "day": 1,
+      "start_period": 2,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_MA201_s2",
+      "class_id": "AI_2B",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T09",
+      "day": 1,
+      "start_period": 2,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_CS201_s1",
+      "class_id": "AI_2A",
+      "subject_id": "CS201",
+      "session_no": 1,
+      "teacher_id": "T12",
+      "day": 1,
+      "start_period": 4,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_AI201_s1",
+      "class_id": "AI_2B",
+      "subject_id": "AI201",
+      "session_no": 1,
+      "teacher_id": "T03",
+      "day": 1,
+      "start_period": 4,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_MA201_s2",
+      "class_id": "AI_2A",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T09",
+      "day": 2,
+      "start_period": 2,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_CS201_s2",
+      "class_id": "AI_2B",
+      "subject_id": "CS201",
+      "session_no": 2,
+      "teacher_id": "T12",
+      "day": 2,
+      "start_period": 2,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_CS201_s2",
+      "class_id": "AI_2A",
+      "subject_id": "CS201",
+      "session_no": 2,
+      "teacher_id": "T12",
+      "day": 2,
+      "start_period": 4,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_AI201_s2",
+      "class_id": "AI_2B",
+      "subject_id": "AI201",
+      "session_no": 2,
+      "teacher_id": "T03",
+      "day": 2,
+      "start_period": 4,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2B_AI201_s3",
+      "class_id": "AI_2B",
+      "subject_id": "AI201",
+      "session_no": 3,
+      "teacher_id": "T03",
+      "day": 3,
+      "start_period": 1,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2B_AI202_s3",
+      "class_id": "AI_2B",
+      "subject_id": "AI202",
+      "session_no": 3,
+      "teacher_id": "T04",
+      "day": 3,
+      "start_period": 2,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_MA201_s3",
+      "class_id": "AI_2A",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T09",
+      "day": 3,
+      "start_period": 4,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_CS201_s3",
+      "class_id": "AI_2B",
+      "subject_id": "CS201",
+      "session_no": 3,
+      "teacher_id": "T12",
+      "day": 3,
+      "start_period": 4,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "AI_2A_AI201_s3",
+      "class_id": "AI_2A",
+      "subject_id": "AI201",
+      "session_no": 3,
+      "teacher_id": "T03",
+      "day": 4,
+      "start_period": 1,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2A_AI202_s3",
+      "class_id": "AI_2A",
+      "subject_id": "AI202",
+      "session_no": 3,
+      "teacher_id": "T04",
+      "day": 4,
+      "start_period": 2,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2A_CS201_s3",
+      "class_id": "AI_2A",
+      "subject_id": "CS201",
+      "session_no": 3,
+      "teacher_id": "T12",
+      "day": 4,
+      "start_period": 4,
+      "room_id": "CR103"
+    },
+    {
+      "session_id": "AI_2B_MA201_s3",
+      "class_id": "AI_2B",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T09",
+      "day": 4,
+      "start_period": 4,
+      "room_id": "CR104"
+    },
+    {
+      "session_id": "ECE_2A_EC201_s1",
+      "class_id": "ECE_2A",
+      "subject_id": "EC201",
+      "session_no": 1,
+      "teacher_id": "T05",
+      "day": 0,
+      "start_period": 5,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_EC202_s1",
+      "class_id": "ECE_2B",
+      "subject_id": "EC202",
+      "session_no": 1,
+      "teacher_id": "T06",
+      "day": 0,
+      "start_period": 5,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_EC202_s1",
+      "class_id": "ECE_2A",
+      "subject_id": "EC202",
+      "session_no": 1,
+      "teacher_id": "T06",
+      "day": 0,
+      "start_period": 6,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_MA201_s1",
+      "class_id": "ECE_2B",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T10",
+      "day": 0,
+      "start_period": 6,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_MA201_s1",
+      "class_id": "ECE_2A",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T10",
+      "day": 0,
+      "start_period": 3,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_CS201_s1",
+      "class_id": "ECE_2B",
+      "subject_id": "CS201",
+      "session_no": 1,
+      "teacher_id": "T01",
+      "day": 0,
+      "start_period": 3,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_EC201_s2",
+      "class_id": "ECE_2A",
+      "subject_id": "EC201",
+      "session_no": 2,
+      "teacher_id": "T05",
+      "day": 1,
+      "start_period": 5,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_EC202_s2",
+      "class_id": "ECE_2B",
+      "subject_id": "EC202",
+      "session_no": 2,
+      "teacher_id": "T06",
+      "day": 1,
+      "start_period": 5,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_EC202_s2",
+      "class_id": "ECE_2A",
+      "subject_id": "EC202",
+      "session_no": 2,
+      "teacher_id": "T06",
+      "day": 1,
+      "start_period": 6,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_MA201_s2",
+      "class_id": "ECE_2B",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T10",
+      "day": 1,
+      "start_period": 6,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_CS201_s1",
+      "class_id": "ECE_2A",
+      "subject_id": "CS201",
+      "session_no": 1,
+      "teacher_id": "T01",
+      "day": 1,
+      "start_period": 3,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_EC201_s1",
+      "class_id": "ECE_2B",
+      "subject_id": "EC201",
+      "session_no": 1,
+      "teacher_id": "T05",
+      "day": 1,
+      "start_period": 3,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_MA201_s2",
+      "class_id": "ECE_2A",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T10",
+      "day": 2,
+      "start_period": 6,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_CS201_s2",
+      "class_id": "ECE_2B",
+      "subject_id": "CS201",
+      "session_no": 2,
+      "teacher_id": "T01",
+      "day": 2,
+      "start_period": 6,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_CS201_s2",
+      "class_id": "ECE_2A",
+      "subject_id": "CS201",
+      "session_no": 2,
+      "teacher_id": "T01",
+      "day": 2,
+      "start_period": 3,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_EC201_s2",
+      "class_id": "ECE_2B",
+      "subject_id": "EC201",
+      "session_no": 2,
+      "teacher_id": "T05",
+      "day": 2,
+      "start_period": 3,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2B_EC201_s3",
+      "class_id": "ECE_2B",
+      "subject_id": "EC201",
+      "session_no": 3,
+      "teacher_id": "T05",
+      "day": 3,
+      "start_period": 5,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2B_EC202_s3",
+      "class_id": "ECE_2B",
+      "subject_id": "EC202",
+      "session_no": 3,
+      "teacher_id": "T06",
+      "day": 3,
+      "start_period": 6,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_MA201_s3",
+      "class_id": "ECE_2A",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T10",
+      "day": 3,
+      "start_period": 3,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_CS201_s3",
+      "class_id": "ECE_2B",
+      "subject_id": "CS201",
+      "session_no": 3,
+      "teacher_id": "T01",
+      "day": 3,
+      "start_period": 3,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "ECE_2A_EC201_s3",
+      "class_id": "ECE_2A",
+      "subject_id": "EC201",
+      "session_no": 3,
+      "teacher_id": "T05",
+      "day": 4,
+      "start_period": 5,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2A_EC202_s3",
+      "class_id": "ECE_2A",
+      "subject_id": "EC202",
+      "session_no": 3,
+      "teacher_id": "T06",
+      "day": 4,
+      "start_period": 6,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2A_CS201_s3",
+      "class_id": "ECE_2A",
+      "subject_id": "CS201",
+      "session_no": 3,
+      "teacher_id": "T01",
+      "day": 4,
+      "start_period": 3,
+      "room_id": "CR101"
+    },
+    {
+      "session_id": "ECE_2B_MA201_s3",
+      "class_id": "ECE_2B",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T10",
+      "day": 4,
+      "start_period": 3,
+      "room_id": "CR102"
+    },
+    {
+      "session_id": "IT_2A_IT201_s1",
+      "class_id": "IT_2A",
+      "subject_id": "IT201",
+      "session_no": 1,
+      "teacher_id": "T07",
+      "day": 0,
+      "start_period": 5,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_CS202_s1",
+      "class_id": "IT_2B",
+      "subject_id": "CS202",
+      "session_no": 1,
+      "teacher_id": "T02",
+      "day": 0,
+      "start_period": 5,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_CS202_s1",
+      "class_id": "IT_2A",
+      "subject_id": "CS202",
+      "session_no": 1,
+      "teacher_id": "T02",
+      "day": 0,
+      "start_period": 6,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_MA201_s1",
+      "class_id": "IT_2B",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T11",
+      "day": 0,
+      "start_period": 6,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_MA201_s1",
+      "class_id": "IT_2A",
+      "subject_id": "MA201",
+      "session_no": 1,
+      "teacher_id": "T11",
+      "day": 0,
+      "start_period": 3,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_AI201_s1",
+      "class_id": "IT_2B",
+      "subject_id": "AI201",
+      "session_no": 1,
+      "teacher_id": "T03",
+      "day": 0,
+      "start_period": 3,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2B_IT201_s1",
+      "class_id": "IT_2B",
+      "subject_id": "IT201",
+      "session_no": 1,
+      "teacher_id": "T07",
+      "day": 1,
+      "start_period": 5,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2B_CS202_s2",
+      "class_id": "IT_2B",
+      "subject_id": "CS202",
+      "session_no": 2,
+      "teacher_id": "T02",
+      "day": 1,
+      "start_period": 6,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_AI201_s1",
+      "class_id": "IT_2A",
+      "subject_id": "AI201",
+      "session_no": 1,
+      "teacher_id": "T03",
+      "day": 1,
+      "start_period": 3,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_MA201_s2",
+      "class_id": "IT_2B",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T11",
+      "day": 1,
+      "start_period": 3,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_IT201_s2",
+      "class_id": "IT_2A",
+      "subject_id": "IT201",
+      "session_no": 2,
+      "teacher_id": "T07",
+      "day": 2,
+      "start_period": 5,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2A_CS202_s2",
+      "class_id": "IT_2A",
+      "subject_id": "CS202",
+      "session_no": 2,
+      "teacher_id": "T02",
+      "day": 2,
+      "start_period": 6,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2A_MA201_s2",
+      "class_id": "IT_2A",
+      "subject_id": "MA201",
+      "session_no": 2,
+      "teacher_id": "T11",
+      "day": 2,
+      "start_period": 3,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_AI201_s2",
+      "class_id": "IT_2B",
+      "subject_id": "AI201",
+      "session_no": 2,
+      "teacher_id": "T03",
+      "day": 2,
+      "start_period": 3,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_AI201_s2",
+      "class_id": "IT_2A",
+      "subject_id": "AI201",
+      "session_no": 2,
+      "teacher_id": "T03",
+      "day": 3,
+      "start_period": 5,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_IT201_s2",
+      "class_id": "IT_2B",
+      "subject_id": "IT201",
+      "session_no": 2,
+      "teacher_id": "T07",
+      "day": 3,
+      "start_period": 5,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_IT201_s3",
+      "class_id": "IT_2A",
+      "subject_id": "IT201",
+      "session_no": 3,
+      "teacher_id": "T07",
+      "day": 3,
+      "start_period": 6,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_CS202_s3",
+      "class_id": "IT_2B",
+      "subject_id": "CS202",
+      "session_no": 3,
+      "teacher_id": "T02",
+      "day": 3,
+      "start_period": 6,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_CS202_s3",
+      "class_id": "IT_2A",
+      "subject_id": "CS202",
+      "session_no": 3,
+      "teacher_id": "T02",
+      "day": 3,
+      "start_period": 3,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_MA201_s3",
+      "class_id": "IT_2B",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T11",
+      "day": 3,
+      "start_period": 3,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_MA201_s3",
+      "class_id": "IT_2A",
+      "subject_id": "MA201",
+      "session_no": 3,
+      "teacher_id": "T11",
+      "day": 4,
+      "start_period": 5,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_AI201_s3",
+      "class_id": "IT_2B",
+      "subject_id": "AI201",
+      "session_no": 3,
+      "teacher_id": "T03",
+      "day": 4,
+      "start_period": 5,
+      "room_id": "CR106"
+    },
+    {
+      "session_id": "IT_2A_AI201_s3",
+      "class_id": "IT_2A",
+      "subject_id": "AI201",
+      "session_no": 3,
+      "teacher_id": "T03",
+      "day": 4,
+      "start_period": 6,
+      "room_id": "CR105"
+    },
+    {
+      "session_id": "IT_2B_IT201_s3",
+      "class_id": "IT_2B",
+      "subject_id": "IT201",
+      "session_no": 3,
+      "teacher_id": "T07",
+      "day": 4,
+      "start_period": 6,
+      "room_id": "CR106"
+    }
+  ]
+}
