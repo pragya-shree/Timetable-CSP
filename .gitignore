@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment and secrets
+.env
+
+# Temporary solver outputs
+schedule.json
+
+# Temporary generator scripts
+experiments/_gen_app.py
+experiments/_gen_test.py
+
+# Distribution
+dist/
+build/
+*.egg-info/
