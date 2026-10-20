@@ -18,7 +18,7 @@ import os
 import pathlib
 import random
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any
 
 # Ensure project root is on sys.path so core/ is importable when running as
@@ -169,7 +169,7 @@ def save_results(metrics_list: List[Dict[str, Any]]):
 
     # Save a JSON metadata file describing the experiment run
     meta = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "tool_versions": {
             "python": "3.x",
             "pandas": pd.__version__,
