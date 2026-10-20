@@ -93,7 +93,7 @@ class TestDefaultCustomData:
         v_check = validate_timetable(res.timetable)
         assert v_check.is_valid
 
-    def test_roundtrip_from_demo_small_dataset(self):
+    def test_roundtrip_from_small_benchmark_dataset(self):
         ds = load_dataset_from_file(PROJECT_ROOT / "datasets" / "small_dataset.json")
         tables = dataset_to_custom_tables(ds)
         res = validate_and_build_custom_dataset(
