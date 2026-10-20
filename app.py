@@ -45,6 +45,20 @@ from core.constraints import validate_timetable
 from core.cost import calculate_cost
 from core.backtracking import solve_backtracking
 from core.min_conflicts import solve_min_conflicts
+from core.bulk_importer import (
+    parse_pasted_tabular_text,
+    parse_uploaded_file,
+    parse_complete_workbook,
+    validate_bulk_rows,
+    generate_csv_template,
+    generate_xlsx_template,
+    generate_combined_workbook_template,
+    teacher_slots_to_matrix,
+    matrix_to_teacher_slots,
+    append_blank_rows,
+    merge_imported_rows,
+    CANONICAL_COLUMNS,
+)
 from core.custom_builder import (
     create_default_custom_data,
     dataset_to_custom_tables,
@@ -124,6 +138,8 @@ _DEFAULTS = {
     "custom_data": None,
     "custom_validation": None,
     "nav_selection": "Dashboard",
+    "wizard_step": 0,
+    "custom_setup_workflow_mode": "🚀 Quick Setup Wizard (Bulk Entry & Importer)",
     # Backward-compatible keys for existing tests
     "timetable": None,
     "result": None,
@@ -785,6 +801,342 @@ def _show_violations(violations: list[Any], max_show: int = 15) -> None:
         st.caption(f"... and {len(violations) - max_show} more violations.")
 
 
+
+# ---------------------------------------------------------------------------
+# Bulk Setup UI Helpers (Quick Setup Wizard, Tabular Ingestion, Availability)
+# ---------------------------------------------------------------------------
+
+def _render_bulk_entity_box(
+    entity_type: str,
+    title: str,
+    c_data: dict[str, Any],
+    column_config: dict[str, Any],
+    known_classes: set[str] | None = None,
+    known_teachers: set[str] | None = None,
+):
+    """Renders a high-speed bulk tabular editor with TSV paste, file upload, and templates."""
+    cur_df = c_data.get(entity_type, pd.DataFrame(columns=CANONICAL_COLUMNS[entity_type]))
+    st.subheader(f"{title} ({len(cur_df)} defined)")
+
+    # Action Toolbar
+    tb1, tb2, tb3 = st.columns([1.2, 1, 1])
+    with tb1:
+        if st.button(f"➕ Add 5 Blank Rows", key=f"add_rows_{entity_type}", use_container_width=True):
+            c_data[entity_type] = append_blank_rows(cur_df, entity_type, count=5)
+            st.rerun()
+
+    with tb2:
+        csv_bytes = generate_csv_template(entity_type).encode("utf-8")
+        st.download_button(
+            "📥 CSV Template",
+            csv_bytes,
+            f"{entity_type}_template.csv",
+            "text/csv",
+            key=f"dl_csv_{entity_type}",
+            use_container_width=True,
+        )
+
+    with tb3:
+        xlsx_bytes = generate_xlsx_template(entity_type)
+        st.download_button(
+            "📥 Excel Template",
+            xlsx_bytes,
+            f"{entity_type}_template.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key=f"dl_xlsx_{entity_type}",
+            use_container_width=True,
+        )
+
+    # Ingestion Expanders (Paste TSV & Upload File)
+    with st.expander(f"📋 Paste from Excel / Google Sheets ({entity_type.capitalize()})", expanded=False):
+        st.caption("Copy rows from Excel, Google Sheets, or a text file and paste them here directly:")
+        paste_text = st.text_area(
+            f"Paste Tab-Separated or CSV Data ({entity_type})",
+            height=120,
+            key=f"paste_text_{entity_type}",
+            placeholder="Code\tName\t...",
+        )
+        p_c1, p_c2 = st.columns([2, 1])
+        with p_c1:
+            p_mode = st.radio("Merge Mode", ["Append to existing rows", "Replace table completely"], horizontal=True, key=f"paste_mode_{entity_type}")
+        with p_c2:
+            if st.button("📥 Parse & Add Pasted Data", key=f"apply_paste_{entity_type}", use_container_width=True, type="primary"):
+                if paste_text.strip():
+                    parsed_df = parse_pasted_tabular_text(paste_text, entity_type)
+                    val_res = validate_bulk_rows(parsed_df, entity_type, known_classes, known_teachers)
+                    if not val_res.accepted_df.empty:
+                        m_mode = "replace" if "Replace" in p_mode else "append"
+                        c_data[entity_type] = merge_imported_rows(cur_df, val_res.accepted_df, entity_type, mode=m_mode)
+                        st.success(f"Successfully processed {len(val_res.accepted_df)} row(s) into {entity_type}!")
+                    if val_res.rejected_rows:
+                        st.warning(f"⚠️ {len(val_res.rejected_rows)} row(s) had errors:")
+                        for r_err in val_res.rejected_rows[:8]:
+                            st.error(f"Row {r_err.row_number}: {', '.join(r_err.errors)}")
+                    st.rerun()
+
+    with st.expander(f"📁 Upload File (CSV or XLSX)", expanded=False):
+        uploaded_f = st.file_uploader(
+            f"Upload {entity_type.capitalize()} CSV or Excel File",
+            type=["csv", "tsv", "xlsx", "xls"],
+            key=f"file_uploader_{entity_type}",
+        )
+        if uploaded_f is not None:
+            f_col1, f_col2 = st.columns([2, 1])
+            with f_col1:
+                u_mode = st.radio("File Merge Mode", ["Append to existing rows", "Replace table completely"], horizontal=True, key=f"u_mode_{entity_type}")
+            with f_col2:
+                if st.button("📥 Process Uploaded File", key=f"apply_upload_{entity_type}", use_container_width=True, type="primary"):
+                    content_bytes = uploaded_f.getvalue()
+                    parsed_df = parse_uploaded_file(content_bytes, uploaded_f.name, entity_type)
+                    val_res = validate_bulk_rows(parsed_df, entity_type, known_classes, known_teachers)
+                    if not val_res.accepted_df.empty:
+                        m_mode = "replace" if "Replace" in u_mode else "append"
+                        c_data[entity_type] = merge_imported_rows(cur_df, val_res.accepted_df, entity_type, mode=m_mode)
+                        st.success(f"Loaded {len(val_res.accepted_df)} row(s) from '{uploaded_f.name}'!")
+                    if val_res.rejected_rows:
+                        st.warning(f"⚠️ {len(val_res.rejected_rows)} row(s) had errors:")
+                        for r_err in val_res.rejected_rows[:8]:
+                            st.error(f"Row {r_err.row_number}: {', '.join(r_err.errors)}")
+                    st.rerun()
+
+    # Compact Editable Table
+    c_data[entity_type] = st.data_editor(
+        c_data[entity_type],
+        num_rows="dynamic",
+        use_container_width=True,
+        column_config=column_config,
+        key=f"bulk_editor_{entity_type}",
+    )
+
+    # Row-Level Validation Summary
+    row_val = validate_bulk_rows(c_data[entity_type], entity_type, known_classes, known_teachers)
+    if row_val.rejected_rows:
+        with st.expander(f"⚠️ {len(row_val.rejected_rows)} Row-Level Issue(s) in {entity_type.capitalize()}", expanded=True):
+            for err in row_val.rejected_rows[:10]:
+                st.error(f"Row {err.row_number}: {', '.join(err.errors)}")
+
+
+def _render_availability_matrix_editor(c_data: dict[str, Any]):
+    """Renders the interactive Teacher Availability Matrix grid with bulk toggles."""
+    teachers_df = c_data.get("teachers", pd.DataFrame())
+    cfg = c_data.get("config", {})
+    days = cfg.get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])
+    periods_per_day = int(cfg.get("periods_per_day", 6))
+
+    st.subheader("📅 Interactive Teacher Availability & Preference Matrix")
+    st.markdown(
+        "Select a faculty member and configure their available, unavailable, or preferred slots. "
+        "Unspecified slots are **available by default**."
+    )
+
+    if teachers_df.empty or "teacher_id" not in teachers_df.columns:
+        st.info("No teachers defined yet. Please add teachers in the table above to configure availability.")
+        return
+
+    teacher_ids = [str(tid).strip() for tid in teachers_df["teacher_id"] if str(tid).strip()]
+    if not teacher_ids:
+        st.info("Please enter at least one Teacher ID in the table above.")
+        return
+
+    teacher_names = dict(zip(teachers_df["teacher_id"].astype(str), teachers_df["teacher_name"].astype(str)))
+    sel_tid = st.selectbox(
+        "Choose Faculty Member",
+        teacher_ids,
+        format_func=lambda x: f"{teacher_names.get(x, x)} ({x})",
+        key="avail_matrix_teacher_select",
+    )
+
+    # Find teacher row
+    matching = teachers_df[teachers_df["teacher_id"] == sel_tid]
+    if matching.empty:
+        return
+    t_idx = matching.index[0]
+    unavail_str = str(teachers_df.at[t_idx, "unavailable_slots"]) if "unavailable_slots" in teachers_df.columns else ""
+    pref_str = str(teachers_df.at[t_idx, "preferred_slots"]) if "preferred_slots" in teachers_df.columns else ""
+
+    matrix_df = teacher_slots_to_matrix(unavail_str, pref_str, days, periods_per_day)
+
+    # Quick Bulk Actions
+    q1, q2, q3, q4 = st.columns([1.2, 1.4, 1.4, 1.4])
+    with q1:
+        if st.button("🟢 All Available", use_container_width=True, key="mat_reset_avail"):
+            teachers_df.at[t_idx, "unavailable_slots"] = ""
+            teachers_df.at[t_idx, "preferred_slots"] = ""
+            st.success(f"Cleared all restrictions for {sel_tid}.")
+            st.rerun()
+
+    with q2:
+        block_day = st.selectbox("Block Day", days, key="mat_block_day_sel")
+        if st.button("🔴 Block Day", use_container_width=True, key="mat_btn_block_day"):
+            matrix_df[block_day] = "🔴 Unavailable"
+            nu, np = matrix_to_teacher_slots(matrix_df, days)
+            teachers_df.at[t_idx, "unavailable_slots"] = nu
+            teachers_df.at[t_idx, "preferred_slots"] = np
+            st.rerun()
+
+    with q3:
+        period_opts = [f"P{p + 1}" for p in range(periods_per_day)]
+        block_p = st.selectbox("Block Period", period_opts, key="mat_block_p_sel")
+        if st.button("🔴 Block Period", use_container_width=True, key="mat_btn_block_period"):
+            matrix_df.loc[block_p] = "🔴 Unavailable"
+            nu, np = matrix_to_teacher_slots(matrix_df, days)
+            teachers_df.at[t_idx, "unavailable_slots"] = nu
+            teachers_df.at[t_idx, "preferred_slots"] = np
+            st.rerun()
+
+    with q4:
+        pref_p = st.selectbox("Prefer Period", period_opts, key="mat_pref_p_sel")
+        if st.button("⭐ Prefer Period", use_container_width=True, key="mat_btn_pref_period"):
+            matrix_df.loc[pref_p] = "⭐ Preferred"
+            nu, np = matrix_to_teacher_slots(matrix_df, days)
+            teachers_df.at[t_idx, "unavailable_slots"] = nu
+            teachers_df.at[t_idx, "preferred_slots"] = np
+            st.rerun()
+
+    # Interactive Grid
+    grid_cfg = {
+        col: st.column_config.SelectboxColumn(
+            col,
+            options=["🟢 Available", "🔴 Unavailable", "⭐ Preferred"],
+            required=True,
+        )
+        for col in days
+    }
+    edited_matrix = st.data_editor(
+        matrix_df,
+        use_container_width=True,
+        column_config=grid_cfg,
+        key=f"mat_editor_{sel_tid}",
+    )
+
+    # Sync back to teacher record if changed
+    if not edited_matrix.equals(matrix_df):
+        new_unavail, new_pref = matrix_to_teacher_slots(edited_matrix, days)
+        teachers_df.at[t_idx, "unavailable_slots"] = new_unavail
+        teachers_df.at[t_idx, "preferred_slots"] = new_pref
+
+    st.caption("🟢 **Available**: Regular teaching period. | 🔴 **Unavailable**: Hard constraint H6 (no sessions scheduled). | ⭐ **Preferred**: Soft constraint bonus.")
+
+
+def _render_generation_controls(validated_dataset: TimetableDataset | None):
+    """Unified solver execution, independent solution verification, metrics, and saving."""
+    if validated_dataset is None:
+        st.info("Please configure your institution above and resolve any validation errors to enable timetable generation.")
+        return
+
+    st.info(f"Target dataset: **{validated_dataset.name}** ({len(validated_dataset.classes)} classes, {len(validated_dataset.teachers)} teachers, {len(validated_dataset.rooms)} rooms).")
+
+    gen_col1, gen_col2 = st.columns([2, 1])
+    with gen_col1:
+        algo_choice = st.selectbox("Select Algorithm", list(ALGORITHMS.keys()), key="unified_algo_choice")
+    with gen_col2:
+        st.caption("Algorithm Overview:")
+        st.markdown(ALGO_DESCRIPTIONS[algo_choice])
+
+    with st.expander("Solver Parameters", expanded=False):
+        if algo_choice == "Min-Conflicts":
+            p1, p2, p3 = st.columns(3)
+            mc_iter = p1.number_input("Max Iterations", 100, 100_000, 5000, 500, key="uni_mc_iter")
+            mc_time = p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_mc_time")
+            mc_seed = p3.number_input("Random Seed", 0, 999_999, 42, key="uni_mc_seed")
+            mc_strat = st.selectbox("Initial Strategy", ["random", "greedy"], key="uni_mc_strat")
+        else:
+            p1, p2 = st.columns(2)
+            bt_nodes = p1.number_input("Max Nodes", 1000, 10_000_000, 100_000, 10_000, key="uni_bt_nodes")
+            bt_time = p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_bt_time")
+
+    # Run Solver Button
+    if st.button("🚀 Generate Timetable", type="primary", use_container_width=True, key="uni_btn_generate"):
+        with st.spinner(f"Running {algo_choice} on {validated_dataset.name}..."):
+            if algo_choice == "Min-Conflicts":
+                gen_result = solve_min_conflicts(
+                    dataset=validated_dataset,
+                    max_iterations=int(mc_iter),
+                    time_limit_seconds=float(mc_time),
+                    random_seed=int(mc_seed),
+                    initial_strategy=mc_strat,
+                    record_cost_history=True,
+                )
+            else:
+                gen_result = solve_backtracking(
+                    dataset=validated_dataset,
+                    max_nodes=int(bt_nodes),
+                    time_limit_seconds=float(bt_time),
+                    **(ALGORITHMS[algo_choice] or {}),
+                )
+
+        # Independent Solution Verification
+        if gen_result.success and gen_result.timetable is not None:
+            indep_check = validate_timetable(gen_result.timetable)
+            if not indep_check.is_valid:
+                gen_result.success = False
+                gen_result.status = "invalid_solution"
+                gen_result.failure_reason = f"Independent validation detected {indep_check.hard_violation_count} hard violations."
+
+        st.session_state["active_generation_result"] = gen_result
+
+        if gen_result.success and gen_result.timetable is not None:
+            _set_active_timetable(
+                timetable=gen_result.timetable,
+                name=f"{validated_dataset.name} - {algo_choice}",
+                result=gen_result,
+            )
+
+    # Display Generation Result
+    cur_res = st.session_state.get("active_generation_result")
+    active_tt = st.session_state.get("active_timetable")
+
+    if cur_res is not None:
+        st.markdown("---")
+        st.subheader("Generation Result")
+
+        if cur_res.success:
+            st.success(f"✅ Successfully generated conflict-free schedule using **{algo_choice}**!")
+        else:
+            st.error(f"❌ Solver did not find a valid schedule ({cur_res.status}). Reason: {getattr(cur_res, 'failure_reason', 'Search budget limit reached')}")
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Status", cur_res.status)
+        m2.metric("Runtime", f"{cur_res.runtime_seconds:.4f}s")
+        hv = getattr(cur_res, "hard_violations", getattr(cur_res, "final_hard_violations", 0))
+        m3.metric("Hard Violations", hv)
+        m4.metric("Total Cost", cur_res.total_cost if cur_res.success else "N/A")
+
+        # Post-Generation Actions
+        if cur_res.success and active_tt is not None:
+            st.markdown("### Actions")
+            act_col1, act_col2, act_col3 = st.columns(3)
+
+            with act_col1:
+                if st.button("👁️ View Timetable", use_container_width=True, type="primary", key="uni_btn_view"):
+                    st.session_state["nav_selection"] = "View & Edit Timetable"
+                    st.rerun()
+
+            with act_col2:
+                save_name = st.text_input("Timetable Name", value=st.session_state.get("active_timetable_name", f"{validated_dataset.name} - {algo_choice}"), key="uni_save_name")
+                if st.button("💾 Save Timetable to History", use_container_width=True, key="uni_btn_save"):
+                    search_stats = {
+                        "nodes_explored": getattr(cur_res, "nodes_explored", None),
+                        "backtracks": getattr(cur_res, "backtracks", None),
+                        "iterations": getattr(cur_res, "iterations", None),
+                    }
+                    rec = TimetableRecord.create_from_timetable(
+                        timetable=active_tt,
+                        name=save_name,
+                        algorithm=algo_choice,
+                        runtime_seconds=cur_res.runtime_seconds,
+                        search_metrics=search_stats,
+                    )
+                    _timetable_store.save(rec)
+                    st.session_state["active_timetable_id"] = rec.id
+                    st.session_state["active_timetable_name"] = rec.name
+                    st.success(f"Saved to My Timetables as '{rec.name}'!")
+
+            with act_col3:
+                st.caption("Want to try another solver?")
+                st.write("Select a different algorithm above and click Generate again.")
+
+
 # ---------------------------------------------------------------------------
 # Sidebar Navigation (Reorganized as per Requirement 1)
 # ---------------------------------------------------------------------------
@@ -954,296 +1306,331 @@ if selected_nav == "Dashboard":
 elif selected_nav == "Create Timetable":
     st.title("🛠️ Create Timetable")
     st.markdown(
-        "Configure institution requirements, validate the data schema, "
-        "and generate conflict-free schedules using AI algorithms."
+        "Build, validate, and generate complete institutional timetables using AI algorithms. "
+        "Choose between the **Quick Setup Wizard** (bulk paste, Excel templates, and availability grid) "
+        "or the **Classic Table Editor**."
     )
 
-    # Step 1: Institutional Configuration
-    st.header("Step 1: Institutional Configuration")
+    # Workflow Mode Switcher
+    w_mode = st.radio(
+        "Input Workflow Mode",
+        ["🚀 Quick Setup Wizard (Bulk Entry & Importer)", "🛠️ Classic Table Editor"],
+        horizontal=True,
+        key="custom_setup_workflow_mode",
+    )
+
     c_data = st.session_state["custom_data"]
+    cfg = c_data["config"]
+    periods_per_day = int(cfg.get("periods_per_day", 6))
+    known_classes = set(c_data["classes"]["class_id"].astype(str).str.strip()) if "class_id" in c_data["classes"].columns else set()
+    known_teachers = set(c_data["teachers"]["teacher_id"].astype(str).str.strip()) if "teacher_id" in c_data["teachers"].columns else set()
 
-    # Toolbar
-    tb1, tb2 = st.columns(2)
-    with tb1:
-        if st.button("🔄 Reset Template", use_container_width=True):
-            st.session_state["custom_data"] = create_default_custom_data()
-            st.session_state["custom_validation"] = None
-            st.rerun()
-    with tb2:
-        if st.button("🗑️ Clear All Tables", use_container_width=True):
-            st.session_state["custom_data"] = {
-                "config": {
-                    "name": "My Custom Timetable",
-                    "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                    "periods_per_day": 6,
-                    "default_lunch_slot": 4,
-                    "blocked_periods": "",
-                },
-                "classes": pd.DataFrame(columns=["class_id", "class_name", "strength", "lunch_slot"]),
-                "teachers": pd.DataFrame(columns=["teacher_id", "teacher_name", "max_weekly_load", "qualified_subjects", "unavailable_slots", "preferred_slots"]),
-                "subjects": pd.DataFrame(columns=["subject_id", "subject_name", "class_id", "teacher_id", "type", "weekly_periods", "lab_duration"]),
-                "rooms": pd.DataFrame(columns=["room_id", "room_name", "capacity", "type"]),
-            }
-            st.session_state["custom_validation"] = None
-            st.rerun()
+    # Column configs for data editors
+    class_cols_cfg = {
+        "class_id": st.column_config.TextColumn("Class ID", required=True),
+        "class_name": st.column_config.TextColumn("Class Name", required=True),
+        "strength": st.column_config.NumberColumn("Strength", min_value=1, required=True),
+        "lunch_slot": st.column_config.NumberColumn("Lunch Period", min_value=1, max_value=periods_per_day, required=True),
+    }
+    teacher_cols_cfg = {
+        "teacher_id": st.column_config.TextColumn("Teacher ID", required=True),
+        "teacher_name": st.column_config.TextColumn("Teacher Name", required=True),
+        "max_weekly_load": st.column_config.NumberColumn("Max Weekly Load", min_value=1, required=True),
+        "qualified_subjects": st.column_config.TextColumn("Qualified Subjects"),
+        "unavailable_slots": st.column_config.TextColumn("Unavailable Slots"),
+        "preferred_slots": st.column_config.TextColumn("Preferred Slots"),
+    }
+    subject_cols_cfg = {
+        "subject_id": st.column_config.TextColumn("Subject ID", required=True),
+        "subject_name": st.column_config.TextColumn("Subject Title", required=True),
+        "class_id": st.column_config.SelectboxColumn("Class ID", options=sorted(list(known_classes)) if known_classes else None, required=True),
+        "teacher_id": st.column_config.SelectboxColumn("Teacher ID", options=sorted(list(known_teachers)) if known_teachers else None, required=True),
+        "type": st.column_config.SelectboxColumn("Type", options=["theory", "lab"], required=True),
+        "weekly_periods": st.column_config.NumberColumn("Weekly Hours", min_value=1, required=True),
+        "lab_duration": st.column_config.NumberColumn("Lab Duration", min_value=1, default=1),
+    }
+    room_cols_cfg = {
+        "room_id": st.column_config.TextColumn("Room ID", required=True),
+        "room_name": st.column_config.TextColumn("Room Name", required=True),
+        "capacity": st.column_config.NumberColumn("Capacity", min_value=1, required=True),
+        "type": st.column_config.SelectboxColumn("Room Type", options=["classroom", "lab"], required=True),
+    }
 
-    # Custom Builder Tabs
-    tabs = st.tabs([
-        "📅 Time Grid & Breaks",
-        "🏫 Classes",
-        "👨‍🏫 Teachers",
-        "📚 Subjects & Offerings",
-        "🏛️ Rooms",
-    ])
+    # =======================================================================
+    # WORKFLOW A: QUICK SETUP WIZARD (5 STEPS)
+    # =======================================================================
+    if w_mode == "🚀 Quick Setup Wizard (Bulk Entry & Importer)":
+        st.markdown("---")
+        wizard_step = st.session_state.get("wizard_step", 0)
 
-    # TAB 1: Time Grid
-    with tabs[0]:
-        cfg = c_data["config"]
-        ds_name = st.text_input("Dataset Name", value=cfg.get("name", "Custom College Timetable"))
-        tg1, tg2, tg3 = st.columns(3)
-        with tg1:
-            days_str = st.text_input(
-                "Working Days (comma-separated)",
-                value=", ".join(cfg.get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])),
-            )
-        with tg2:
-            periods_per_day = st.number_input(
-                "Periods Per Day",
-                min_value=2,
-                max_value=12,
-                value=int(cfg.get("periods_per_day", 6)),
-            )
-        with tg3:
-            default_lunch = st.number_input(
-                "Default Lunch Period (1-indexed)",
-                min_value=1,
-                max_value=int(periods_per_day),
-                value=min(int(cfg.get("default_lunch_slot", 4)), int(periods_per_day)),
-            )
-        blocked_str = st.text_input(
-            "Global Blocked Slots (e.g. Assembly)",
-            value=str(cfg.get("blocked_periods", "")),
-            help="Format: 'Monday P1, Wednesday P4' or '(0, 0)'",
-        )
-        cfg["name"] = ds_name
-        cfg["days"] = [d.strip() for d in days_str.split(",") if d.strip()]
-        cfg["periods_per_day"] = periods_per_day
-        cfg["default_lunch_slot"] = default_lunch
-        cfg["blocked_periods"] = blocked_str
+        # Wizard Step Header Buttons
+        step_labels = [
+            "1. 📅 Time Grid",
+            "2. 🏫 Classes & Subjects",
+            "3. 👨‍🏫 Teachers & Matrix",
+            "4. 🏛️ Rooms",
+            "5. ⚡ Generate",
+        ]
+        s_cols = st.columns(5)
+        for s_idx, (col, s_lbl) in enumerate(zip(s_cols, step_labels)):
+            with col:
+                btn_type = "primary" if wizard_step == s_idx else "secondary"
+                if st.button(s_lbl, key=f"wiz_btn_step_{s_idx}", use_container_width=True, type=btn_type):
+                    st.session_state["wizard_step"] = s_idx
+                    st.rerun()
 
-    # TAB 2: Classes
-    with tabs[1]:
-        st.caption("Add student batches. Lunch slot is 1-indexed for display.")
-        c_data["classes"] = st.data_editor(
-            c_data["classes"],
-            num_rows="dynamic",
-            use_container_width=True,
-            column_config={
-                "class_id": st.column_config.TextColumn("Class ID", required=True),
-                "class_name": st.column_config.TextColumn("Class Name", required=True),
-                "strength": st.column_config.NumberColumn("Strength", min_value=1, required=True),
-                "lunch_slot": st.column_config.NumberColumn("Lunch Period", min_value=1, max_value=int(periods_per_day), required=True),
-            },
-            key="classes_table_editor",
-        )
+        st.markdown("---")
 
-    # TAB 3: Teachers
-    with tabs[2]:
-        st.caption("Manage faculty. Slots accept 'Monday P1' or '(0, 0)' notation.")
-        c_data["teachers"] = st.data_editor(
-            c_data["teachers"],
-            num_rows="dynamic",
-            use_container_width=True,
-            column_config={
-                "teacher_id": st.column_config.TextColumn("Teacher ID", required=True),
-                "teacher_name": st.column_config.TextColumn("Teacher Name", required=True),
-                "max_weekly_load": st.column_config.NumberColumn("Max Weekly Load", min_value=1, required=True),
-                "qualified_subjects": st.column_config.TextColumn("Qualified Subjects"),
-                "unavailable_slots": st.column_config.TextColumn("Unavailable Slots"),
-                "preferred_slots": st.column_config.TextColumn("Preferred Slots"),
-            },
-            key="teachers_table_editor",
-        )
+        # STEP 1: Time Grid & Institution Basics
+        if wizard_step == 0:
+            st.header("Step 1: Institution & Weekly Time Grid")
+            st.caption("Configure working days, periods per day, and institutional breaks.")
 
-    # TAB 4: Subjects
-    with tabs[3]:
-        st.caption("Bind subjects to classes and teachers. Lab duration applies to labs.")
-        c_data["subjects"] = st.data_editor(
-            c_data["subjects"],
-            num_rows="dynamic",
-            use_container_width=True,
-            column_config={
-                "subject_id": st.column_config.TextColumn("Subject ID", required=True),
-                "subject_name": st.column_config.TextColumn("Subject Title", required=True),
-                "class_id": st.column_config.TextColumn("Class ID", required=True),
-                "teacher_id": st.column_config.TextColumn("Teacher ID", required=True),
-                "type": st.column_config.SelectboxColumn("Type", options=["theory", "lab"], required=True),
-                "weekly_periods": st.column_config.NumberColumn("Weekly Hours", min_value=1, required=True),
-                "lab_duration": st.column_config.NumberColumn("Lab Duration", min_value=1, default=1),
-            },
-            key="subjects_table_editor",
-        )
-
-    # TAB 5: Rooms
-    with tabs[4]:
-        st.caption("Define classrooms and laboratories with seating capacity.")
-        c_data["rooms"] = st.data_editor(
-            c_data["rooms"],
-            num_rows="dynamic",
-            use_container_width=True,
-            column_config={
-                "room_id": st.column_config.TextColumn("Room ID", required=True),
-                "room_name": st.column_config.TextColumn("Room Name", required=True),
-                "capacity": st.column_config.NumberColumn("Capacity", min_value=1, required=True),
-                "type": st.column_config.SelectboxColumn("Room Type", options=["classroom", "lab"], required=True),
-            },
-            key="rooms_table_editor",
-        )
-
-    # Validate Custom Input
-    st.markdown("---")
-    val_res = validate_and_build_custom_dataset(
-        config=c_data["config"],
-        classes_data=c_data["classes"],
-        teachers_data=c_data["teachers"],
-        subjects_data=c_data["subjects"],
-        rooms_data=c_data["rooms"],
-    )
-    st.session_state["custom_validation"] = val_res
-
-    validated_dataset: TimetableDataset | None = None
-    if val_res.is_valid and val_res.dataset is not None:
-        validated_dataset = val_res.dataset
-        st.success(f"✅ Configuration for **'{val_res.dataset.name}'** is valid and ready for generation.")
-        if val_res.warnings:
-            with st.expander("⚠️ Feasibility Warnings", expanded=False):
-                for w in val_res.warnings:
-                    st.warning(w)
-    else:
-        st.error(f"❌ Configuration has {len(val_res.errors)} validation error(s):")
-        for err in val_res.errors:
-            st.error(f"• {err}")
-
-    # Step 2: Solver Selection & Timetable Generation
-    st.markdown("---")
-    st.header("Step 2: Generate Timetable")
-
-    if validated_dataset is None:
-        st.info("Please configure your institution above and resolve any validation errors to enable timetable generation.")
-    else:
-        st.info(f"Target dataset: **{validated_dataset.name}** ({len(validated_dataset.classes)} classes, {len(validated_dataset.teachers)} teachers, {len(validated_dataset.rooms)} rooms).")
-
-        gen_col1, gen_col2 = st.columns([2, 1])
-        with gen_col1:
-            algo_choice = st.selectbox("Select Algorithm", list(ALGORITHMS.keys()), key="create_algo_choice")
-        with gen_col2:
-            st.caption("Algorithm Overview:")
-            st.markdown(ALGO_DESCRIPTIONS[algo_choice])
-
-        with st.expander("Solver Parameters", expanded=False):
-            if algo_choice == "Min-Conflicts":
-                p1, p2, p3 = st.columns(3)
-                mc_iter = p1.number_input("Max Iterations", 100, 100_000, 5000, 500)
-                mc_time = p2.number_input("Time Limit (s)", 1, 300, 30)
-                mc_seed = p3.number_input("Random Seed", 0, 999_999, 42)
-                mc_strat = st.selectbox("Initial Strategy", ["random", "greedy"])
-            else:
-                p1, p2 = st.columns(2)
-                bt_nodes = p1.number_input("Max Nodes", 1000, 10_000_000, 100_000, 10_000)
-                bt_time = p2.number_input("Time Limit (s)", 1, 300, 30)
-
-        # Run Solver Button
-        if st.button("🚀 Generate Timetable", type="primary", use_container_width=True):
-            with st.spinner(f"Running {algo_choice} on {validated_dataset.name}..."):
-                if algo_choice == "Min-Conflicts":
-                    gen_result = solve_min_conflicts(
-                        dataset=validated_dataset,
-                        max_iterations=int(mc_iter),
-                        time_limit_seconds=float(mc_time),
-                        random_seed=int(mc_seed),
-                        initial_strategy=mc_strat,
-                        record_cost_history=True,
-                    )
-                else:
-                    gen_result = solve_backtracking(
-                        dataset=validated_dataset,
-                        max_nodes=int(bt_nodes),
-                        time_limit_seconds=float(bt_time),
-                        **(ALGORITHMS[algo_choice] or {}),
+            # Express Complete Workbook Importer
+            with st.expander("📁 Express Setup: Upload Complete Institution Workbook (.xlsx)", expanded=False):
+                st.markdown("Upload a multi-sheet Excel file to instantly populate TimeGrid, Classes, Teachers, Subjects, and Rooms all at once:")
+                wb_up = st.file_uploader("Upload Complete Workbook (.xlsx)", type=["xlsx", "xls"], key="wiz_wb_upload")
+                wb_c1, wb_c2 = st.columns(2)
+                with wb_c1:
+                    if st.button("⚡ Quick Fill from Workbook", key="btn_apply_wb", use_container_width=True, type="primary"):
+                        if wb_up is not None:
+                            imported_data, msgs = parse_complete_workbook(wb_up.getvalue())
+                            st.session_state["custom_data"] = imported_data
+                            for m in msgs:
+                                st.info(m)
+                            st.success("Complete institution workbook loaded successfully!")
+                            st.rerun()
+                with wb_c2:
+                    full_wb_bytes = generate_combined_workbook_template()
+                    st.download_button(
+                        "📥 Download Complete Template (.xlsx)",
+                        full_wb_bytes,
+                        "complete_institution_template.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="dl_full_wb_template",
+                        use_container_width=True,
                     )
 
-            # Independent Solution Verification
-            if gen_result.success and gen_result.timetable is not None:
-                indep_check = validate_timetable(gen_result.timetable)
-                if not indep_check.is_valid:
-                    gen_result.success = False
-                    gen_result.status = "invalid_solution"
-                    gen_result.failure_reason = f"Independent validation detected {indep_check.hard_violation_count} hard violations."
+            ds_name = st.text_input("Institution / Timetable Name", value=cfg.get("name", "Custom College Timetable"), key="wiz_ds_name")
+            tg1, tg2, tg3 = st.columns(3)
+            with tg1:
+                days_str = st.text_input("Working Days (comma-separated)", value=", ".join(cfg.get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])), key="wiz_days_str")
+            with tg2:
+                periods_per_day = st.number_input("Periods Per Day", min_value=2, max_value=12, value=int(cfg.get("periods_per_day", 6)), key="wiz_periods_day")
+            with tg3:
+                default_lunch = st.number_input("Default Lunch Period", min_value=1, max_value=int(periods_per_day), value=min(int(cfg.get("default_lunch_slot", 4)), int(periods_per_day)), key="wiz_def_lunch")
 
-            st.session_state["active_generation_result"] = gen_result
+            blocked_str = st.text_input("Global Blocked Slots (e.g. Assembly)", value=str(cfg.get("blocked_periods", "")), help="Format: 'Monday P1, Wednesday P4'", key="wiz_blocked_slots")
 
-            if gen_result.success and gen_result.timetable is not None:
-                _set_active_timetable(
-                    timetable=gen_result.timetable,
-                    name=f"{validated_dataset.name} - {algo_choice}",
-                    result=gen_result,
-                )
+            cfg["name"] = ds_name
+            cfg["days"] = [d.strip() for d in days_str.split(",") if d.strip()]
+            cfg["periods_per_day"] = periods_per_day
+            cfg["default_lunch_slot"] = default_lunch
+            cfg["blocked_periods"] = blocked_str
 
-        # Display Generation Result
-        cur_res = st.session_state.get("active_generation_result")
-        active_tt = st.session_state.get("active_timetable")
-
-        if cur_res is not None:
             st.markdown("---")
-            st.subheader("Generation Result")
+            if st.button("Next: Classes & Subjects ➡️", type="primary", use_container_width=True, key="wiz_next_0"):
+                st.session_state["wizard_step"] = 1
+                st.rerun()
 
-            if cur_res.success:
-                st.success(f"\u2705 Successfully generated conflict-free schedule using **{algo_choice}**!")
+        # STEP 2: Classes & Subjects
+        elif wizard_step == 1:
+            st.header("Step 2: Classes & Course Subjects")
+            _render_bulk_entity_box("classes", "🏫 Student Batches / Classes", c_data, class_cols_cfg)
+            st.markdown("---")
+            _render_bulk_entity_box("subjects", "📚 Course Offerings & Subjects", c_data, subject_cols_cfg, known_classes, known_teachers)
+
+            st.markdown("---")
+            nav_c1, nav_c2 = st.columns(2)
+            with nav_c1:
+                if st.button("⬅️ Previous: Time Grid", use_container_width=True, key="wiz_back_1"):
+                    st.session_state["wizard_step"] = 0
+                    st.rerun()
+            with nav_c2:
+                if st.button("Next: Teachers & Availability ➡️", type="primary", use_container_width=True, key="wiz_next_1"):
+                    st.session_state["wizard_step"] = 2
+                    st.rerun()
+
+        # STEP 3: Teachers & Availability Matrix
+        elif wizard_step == 2:
+            st.header("Step 3: Teachers & Availability Matrix")
+            _render_bulk_entity_box("teachers", "👨‍🏫 Faculty Members", c_data, teacher_cols_cfg)
+            st.markdown("---")
+            _render_availability_matrix_editor(c_data)
+
+            st.markdown("---")
+            nav_c1, nav_c2 = st.columns(2)
+            with nav_c1:
+                if st.button("⬅️ Previous: Classes & Subjects", use_container_width=True, key="wiz_back_2"):
+                    st.session_state["wizard_step"] = 1
+                    st.rerun()
+            with nav_c2:
+                if st.button("Next: Rooms & Venues ➡️", type="primary", use_container_width=True, key="wiz_next_2"):
+                    st.session_state["wizard_step"] = 3
+                    st.rerun()
+
+        # STEP 4: Rooms
+        elif wizard_step == 3:
+            st.header("Step 4: Rooms & Physical Venues")
+            _render_bulk_entity_box("rooms", "🏛️ Classrooms & Laboratories", c_data, room_cols_cfg)
+
+            st.markdown("---")
+            nav_c1, nav_c2 = st.columns(2)
+            with nav_c1:
+                if st.button("⬅️ Previous: Teachers & Availability", use_container_width=True, key="wiz_back_3"):
+                    st.session_state["wizard_step"] = 2
+                    st.rerun()
+            with nav_c2:
+                if st.button("Next: Validation & Generate ➡️", type="primary", use_container_width=True, key="wiz_next_3"):
+                    st.session_state["wizard_step"] = 4
+                    st.rerun()
+
+        # STEP 5: Validation & Generation
+        elif wizard_step == 4:
+            st.header("Step 5: Validation & Timetable Generation")
+
+            # Capacity metrics
+            tot_classes = len(c_data["classes"])
+            tot_teachers = len(c_data["teachers"])
+            tot_rooms = len(c_data["rooms"])
+            tot_subjs = len(c_data["subjects"])
+
+            cap1, cap2, cap3, cap4 = st.columns(4)
+            cap1.metric("Classes", tot_classes)
+            cap2.metric("Teachers", tot_teachers)
+            cap3.metric("Rooms", tot_rooms)
+            cap4.metric("Subjects", tot_subjs)
+
+            # Multi-tier validation
+            val_res = validate_and_build_custom_dataset(
+                config=c_data["config"],
+                classes_data=c_data["classes"],
+                teachers_data=c_data["teachers"],
+                subjects_data=c_data["subjects"],
+                rooms_data=c_data["rooms"],
+            )
+            st.session_state["custom_validation"] = val_res
+
+            if val_res.is_valid and val_res.dataset is not None:
+                st.success(f"✅ Configuration for **'{val_res.dataset.name}'** passed all mathematical and relational feasibility checks!")
+                if val_res.warnings:
+                    with st.expander("⚠️ Feasibility Warnings", expanded=False):
+                        for w in val_res.warnings:
+                            st.warning(w)
             else:
-                st.error(f"\u274c Solver did not find a valid schedule ({cur_res.status}). Reason: {getattr(cur_res, 'failure_reason', 'Search budget limit reached')}")
+                st.error(f"❌ Configuration has {len(val_res.errors)} validation error(s):")
+                for err in val_res.errors:
+                    st.error(f"• {err}")
 
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Status", cur_res.status)
-            m2.metric("Runtime", f"{cur_res.runtime_seconds:.4f}s")
-            hv = getattr(cur_res, "hard_violations", getattr(cur_res, "final_hard_violations", 0))
-            m3.metric("Hard Violations", hv)
-            m4.metric("Total Cost", cur_res.total_cost if cur_res.success else "N/A")
+            st.markdown("---")
+            _render_generation_controls(val_res.dataset if val_res.is_valid else None)
 
-            # Post-Generation Actions
-            if cur_res.success and active_tt is not None:
-                st.markdown("### Actions")
-                act_col1, act_col2, act_col3 = st.columns(3)
+            st.markdown("---")
+            if st.button("⬅️ Previous: Rooms & Venues", use_container_width=True, key="wiz_back_4"):
+                st.session_state["wizard_step"] = 3
+                st.rerun()
 
-                with act_col1:
-                    if st.button("👁️ View Timetable", use_container_width=True, type="primary"):
-                        st.session_state["nav_selection"] = "View & Edit Timetable"
-                        st.rerun()
+    # =======================================================================
+    # WORKFLOW B: CLASSIC TABLE EDITOR (PRESERVED AS DUAL OPTION)
+    # =======================================================================
+    else:
+        st.markdown("---")
+        st.header("Classic Custom Table Editor")
 
-                with act_col2:
-                    save_name = st.text_input("Timetable Name", value=st.session_state.get("active_timetable_name", f"{validated_dataset.name} - {algo_choice}"))
-                    if st.button("💾 Save Timetable to History", use_container_width=True):
-                        search_stats = {
-                            "nodes_explored": getattr(cur_res, "nodes_explored", None),
-                            "backtracks": getattr(cur_res, "backtracks", None),
-                            "iterations": getattr(cur_res, "iterations", None),
-                        }
-                        rec = TimetableRecord.create_from_timetable(
-                            timetable=active_tt,
-                            name=save_name,
-                            algorithm=algo_choice,
-                            runtime_seconds=cur_res.runtime_seconds,
-                            search_metrics=search_stats,
-                        )
-                        _timetable_store.save(rec)
-                        st.session_state["active_timetable_id"] = rec.id
-                        st.session_state["active_timetable_name"] = rec.name
-                        st.success(f"Saved to My Timetables as '{rec.name}'!")
+        # Toolbar
+        tb1, tb2 = st.columns(2)
+        with tb1:
+            if st.button("🔄 Reset Template", use_container_width=True, key="classic_reset_tpl"):
+                st.session_state["custom_data"] = create_default_custom_data()
+                st.session_state["custom_validation"] = None
+                st.rerun()
+        with tb2:
+            if st.button("🗑️ Clear All Tables", use_container_width=True, key="classic_clear_all"):
+                st.session_state["custom_data"] = {
+                    "config": {
+                        "name": "My Custom Timetable",
+                        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                        "periods_per_day": 6,
+                        "default_lunch_slot": 4,
+                        "blocked_periods": "",
+                    },
+                    "classes": pd.DataFrame(columns=CANONICAL_COLUMNS["classes"]),
+                    "teachers": pd.DataFrame(columns=CANONICAL_COLUMNS["teachers"]),
+                    "subjects": pd.DataFrame(columns=CANONICAL_COLUMNS["subjects"]),
+                    "rooms": pd.DataFrame(columns=CANONICAL_COLUMNS["rooms"]),
+                }
+                st.session_state["custom_validation"] = None
+                st.rerun()
 
-                with act_col3:
-                    st.caption("Want to try another solver?")
-                    st.write("Select a different algorithm above and click Generate again.")
+        # Classic 5 Tabs
+        tabs = st.tabs([
+            "📅 Time Grid & Breaks",
+            "🏫 Classes",
+            "👨‍🏫 Teachers",
+            "📚 Subjects & Offerings",
+            "🏛️ Rooms",
+        ])
 
+        with tabs[0]:
+            ds_name = st.text_input("Dataset Name", value=cfg.get("name", "Custom College Timetable"), key="classic_ds_name")
+            tg1, tg2, tg3 = st.columns(3)
+            with tg1:
+                days_str = st.text_input("Working Days (comma-separated)", value=", ".join(cfg.get("days", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"])), key="classic_days")
+            with tg2:
+                periods_per_day = st.number_input("Periods Per Day", min_value=2, max_value=12, value=int(cfg.get("periods_per_day", 6)), key="classic_periods")
+            with tg3:
+                default_lunch = st.number_input("Default Lunch Period", min_value=1, max_value=int(periods_per_day), value=min(int(cfg.get("default_lunch_slot", 4)), int(periods_per_day)), key="classic_lunch")
+            blocked_str = st.text_input("Global Blocked Slots", value=str(cfg.get("blocked_periods", "")), key="classic_blocked")
+            cfg["name"] = ds_name
+            cfg["days"] = [d.strip() for d in days_str.split(",") if d.strip()]
+            cfg["periods_per_day"] = periods_per_day
+            cfg["default_lunch_slot"] = default_lunch
+            cfg["blocked_periods"] = blocked_str
 
+        with tabs[1]:
+            st.caption("Add student batches. Lunch slot is 1-indexed for display.")
+            c_data["classes"] = st.data_editor(c_data["classes"], num_rows="dynamic", use_container_width=True, column_config=class_cols_cfg, key="classes_table_editor")
+
+        with tabs[2]:
+            st.caption("Manage faculty. Slots accept 'Monday P1' or '(0, 0)' notation.")
+            c_data["teachers"] = st.data_editor(c_data["teachers"], num_rows="dynamic", use_container_width=True, column_config=teacher_cols_cfg, key="teachers_table_editor")
+
+        with tabs[3]:
+            st.caption("Bind subjects to classes and teachers. Lab duration applies to labs.")
+            c_data["subjects"] = st.data_editor(c_data["subjects"], num_rows="dynamic", use_container_width=True, column_config=subject_cols_cfg, key="subjects_table_editor")
+
+        with tabs[4]:
+            st.caption("Define classrooms and laboratories with seating capacity.")
+            c_data["rooms"] = st.data_editor(c_data["rooms"], num_rows="dynamic", use_container_width=True, column_config=room_cols_cfg, key="rooms_table_editor")
+
+        # Validate Custom Input
+        st.markdown("---")
+        val_res = validate_and_build_custom_dataset(
+            config=c_data["config"],
+            classes_data=c_data["classes"],
+            teachers_data=c_data["teachers"],
+            subjects_data=c_data["subjects"],
+            rooms_data=c_data["rooms"],
+        )
+        st.session_state["custom_validation"] = val_res
+
+        validated_dataset = None
+        if val_res.is_valid and val_res.dataset is not None:
+            validated_dataset = val_res.dataset
+            st.success(f"✅ Configuration for **'{val_res.dataset.name}'** is valid and ready for generation.")
+            if val_res.warnings:
+                with st.expander("⚠️ Feasibility Warnings", expanded=False):
+                    for w in val_res.warnings:
+                        st.warning(w)
+        else:
+            st.error(f"❌ Configuration has {len(val_res.errors)} validation error(s):")
+            for err in val_res.errors:
+                st.error(f"• {err}")
+
+        # Step 2: Solver Selection & Timetable Generation
+        st.markdown("---")
+        st.header("Step 2: Generate Timetable")
+        _render_generation_controls(validated_dataset)
 # ===========================================================================
 # 3. MY TIMETABLES (Persistent Storage & History)
 # ===========================================================================
