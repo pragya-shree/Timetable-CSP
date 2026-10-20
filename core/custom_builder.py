@@ -699,6 +699,52 @@ def validate_and_build_custom_dataset(
         })
 
     # ---------------------------------------------------------
+    # 5b. Resolve bare subject codes in teacher qualified_subjects
+    #
+    # A teacher's "qualified_subjects" field is a free-text list such as
+    # "AIP203;CSP207".  When subjects are named with class suffixes like
+    # "AIP203-D1" and "AIP203-D2", the bare code "AIP203" does not match
+    # any key in cleaned_subjects.  validate_dataset_schema would then
+    # reject it as an unknown reference.
+    #
+    # Resolution rule:
+    #   - If an entry already matches a known subject ID → keep it.
+    #   - If an entry is a bare code that is an exact ID-prefix of one or
+    #     more known subject IDs (i.e. subject_id == bare_code or
+    #     subject_id.startswith(bare_code + "-")) → expand to those IDs
+    #     and remove the bare code itself.
+    #   - If no match at all → emit a hard validation error (do not
+    #     silently ignore it).
+    #
+    # Note: auto-qualify (line 692 above) already added the full IDs
+    # assigned in the Subjects table, so this pass only needs to handle
+    # any remaining user-supplied bare codes.
+    # ---------------------------------------------------------
+    all_subject_ids: set[str] = set(cleaned_subjects.keys())
+
+    for tid, tinfo in cleaned_teachers.items():
+        resolved: set[str] = set()
+        for entry in tinfo["qualified_subjects"]:
+            if entry in all_subject_ids:
+                # Already a valid full subject ID — keep as-is
+                resolved.add(entry)
+            else:
+                # Try prefix expansion: match "AIP203" -> "AIP203-D1", "AIP203-D2"
+                prefix = entry + "-"
+                matches = {
+                    sid for sid in all_subject_ids
+                    if sid == entry or sid.startswith(prefix)
+                }
+                if matches:
+                    resolved.update(matches)
+                else:
+                    errors.append(
+                        f"Teacher '{tid}': qualified subject '{entry}' does not match "
+                        f"any defined subject ID or subject code prefix."
+                    )
+        tinfo["qualified_subjects"] = resolved
+
+    # ---------------------------------------------------------
     # 6. Cross-Entity Physical & Relational Validation
     # ---------------------------------------------------------
     # Check that rooms exist for required types and capacities
