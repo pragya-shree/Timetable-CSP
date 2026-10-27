@@ -1,0 +1,177 @@
+{
+  "name": "Medium Tight Academic Dataset",
+  "time_structure": {
+    "days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
+    "periods_per_day": 6,
+    "blocked_periods": [
+      [0, 0],
+      [4, 5]
+    ]
+  },
+  "subjects": [
+    {
+      "id": "CS201",
+      "name": "Algorithms",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "CS202",
+      "name": "Operating Systems",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "EC201",
+      "name": "Digital Electronics",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "MA201",
+      "name": "Mathematics",
+      "weekly_periods": 3,
+      "type": "theory"
+    },
+    {
+      "id": "CS201_LAB",
+      "name": "Computing Lab",
+      "weekly_periods": 2,
+      "type": "lab",
+      "lab_duration": 2
+    },
+    {
+      "id": "EC201_LAB",
+      "name": "Electronics Lab",
+      "weekly_periods": 2,
+      "type": "lab",
+      "lab_duration": 2
+    }
+  ],
+  "teachers": [
+    {
+      "id": "T1",
+      "name": "Prof. A. Turing",
+      "subject_ids": ["CS201"],
+      "unavailable_slots": [
+        [0, 1], [0, 2], [1, 1], [1, 2], [2, 1], [3, 1], [4, 1]
+      ],
+      "max_weekly_load": 16,
+      "preferred_slots": [
+        [0, 3], [1, 3], [2, 3], [3, 3], [4, 3]
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "Prof. B. Ritchie",
+      "subject_ids": ["CS202", "CS201_LAB"],
+      "unavailable_slots": [
+        [0, 3], [1, 3], [2, 3], [3, 3], [4, 3]
+      ],
+      "max_weekly_load": 18,
+      "preferred_slots": [
+        [0, 1], [1, 1], [2, 1], [3, 1], [4, 1]
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "Prof. C. Shannon",
+      "subject_ids": ["EC201", "EC201_LAB"],
+      "unavailable_slots": [
+        [0, 4], [1, 4], [2, 4], [3, 4], [4, 4]
+      ],
+      "max_weekly_load": 18,
+      "preferred_slots": [
+        [0, 2], [1, 2], [2, 2], [3, 2], [4, 2]
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "Prof. D. Knuth",
+      "subject_ids": ["MA201"],
+      "unavailable_slots": [
+        [0, 5], [1, 5], [2, 5], [3, 5], [4, 2]
+      ],
+      "max_weekly_load": 16,
+      "preferred_slots": [
+        [0, 1], [1, 1], [2, 1], [3, 1], [4, 1]
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": "CR1",
+      "name": "Classroom 1",
+      "capacity": 35,
+      "type": "classroom"
+    },
+    {
+      "id": "CR2",
+      "name": "Classroom 2",
+      "capacity": 35,
+      "type": "classroom"
+    },
+    {
+      "id": "LAB1",
+      "name": "Hardware & Computing Lab",
+      "capacity": 35,
+      "type": "lab"
+    }
+  ],
+  "classes": [
+    {
+      "id": "CSE_A",
+      "name": "CSE A",
+      "strength": 30,
+      "lunch_slot": 3,
+      "subjects": [
+        {"subject_id": "CS201", "teacher_id": "T1", "weekly_periods": 3},
+        {"subject_id": "CS202", "teacher_id": "T2", "weekly_periods": 3},
+        {"subject_id": "MA201", "teacher_id": "T4", "weekly_periods": 3},
+        {"subject_id": "CS201_LAB", "teacher_id": "T2", "weekly_periods": 2}
+      ]
+    },
+    {
+      "id": "CSE_B",
+      "name": "CSE B",
+      "strength": 30,
+      "lunch_slot": 3,
+      "subjects": [
+        {"subject_id": "CS201", "teacher_id": "T1", "weekly_periods": 3},
+        {"subject_id": "CS202", "teacher_id": "T2", "weekly_periods": 3},
+        {"subject_id": "MA201", "teacher_id": "T4", "weekly_periods": 3},
+        {"subject_id": "CS201_LAB", "teacher_id": "T2", "weekly_periods": 2}
+      ]
+    },
+    {
+      "id": "ECE_A",
+      "name": "ECE A",
+      "strength": 30,
+      "lunch_slot": 2,
+      "subjects": [
+        {"subject_id": "EC201", "teacher_id": "T3", "weekly_periods": 3},
+        {"subject_id": "CS201", "teacher_id": "T1", "weekly_periods": 3},
+        {"subject_id": "MA201", "teacher_id": "T4", "weekly_periods": 3},
+        {"subject_id": "EC201_LAB", "teacher_id": "T3", "weekly_periods": 2}
+      ]
+    },
+    {
+      "id": "ECE_B",
+      "name": "ECE B",
+      "strength": 30,
+      "lunch_slot": 2,
+      "subjects": [
+        {"subject_id": "EC201", "teacher_id": "T3", "weekly_periods": 3},
+        {"subject_id": "CS202", "teacher_id": "T2", "weekly_periods": 3},
+        {"subject_id": "MA201", "teacher_id": "T4", "weekly_periods": 3},
+        {"subject_id": "EC201_LAB", "teacher_id": "T3", "weekly_periods": 2}
+      ]
+    }
+  ]
+}

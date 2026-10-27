@@ -479,3 +479,20 @@ def test_min_conflicts_result_to_dict(small_dataset: TimetableDataset):
     assert d["algorithm"] == "min_conflicts"
     assert d["success"] is True
     assert d["final_hard_violations"] == 0
+
+
+def test_min_conflicts_two_stage_refinement(small_dataset: TimetableDataset):
+    """Verifies that enabling refine_soft_costs optimizes soft costs while keeping 0 hard violations."""
+    result = solve_min_conflicts(
+        small_dataset,
+        max_iterations=5000,
+        random_seed=42,
+        refine_soft_costs=True,
+        soft_refinement_iterations=200,
+    )
+    assert result.success is True
+    assert result.final_hard_violations == 0
+    val = validate_timetable(result.timetable)
+    assert val.is_valid is True
+    assert val.hard_violation_count == 0
+    assert result.total_cost < 1000  # no hard penalties

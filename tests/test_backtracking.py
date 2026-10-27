@@ -1205,12 +1205,10 @@ def test_fc_preserves_soft_penalties_and_cost(small_dataset: TimetableDataset):
     assert "s1_gaps" in result.soft_penalties
     assert "s2_repeats" in result.soft_penalties
     assert "s3_non_consecutive" in result.soft_penalties
+    assert "s4_teacher_preferences" in result.soft_penalties
+    assert "s5_teacher_consecutive" in result.soft_penalties
 
-    expected_cost = (
-        result.soft_penalties["s1_gaps"]
-        + result.soft_penalties["s2_repeats"]
-        + result.soft_penalties["s3_non_consecutive"]
-    )
+    expected_cost = sum(result.soft_penalties.values())
     assert result.total_cost == expected_cost
 
     d = result.to_dict()
@@ -1234,4 +1232,16 @@ def test_fc_solver_reentrancy(small_dataset: TimetableDataset):
     assert res1.timetable.assignments == res2.timetable.assignments
 
 
+def test_backtracking_optimize_quality_flag(small_dataset: TimetableDataset):
+    """Verifies that solve_backtracking with optimize_quality=True returns a valid timetable."""
+    result = solve_backtracking(
+        small_dataset,
+        variable_ordering="mrv_degree_fc",
+        optimize_quality=True,
+    )
+    assert result.success is True
+    assert result.hard_violations == 0
+    val = validate_timetable(result.timetable)
+    assert val.is_valid is True
+    assert val.hard_violation_count == 0
 

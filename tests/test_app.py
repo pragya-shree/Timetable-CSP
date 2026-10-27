@@ -467,6 +467,7 @@ class TestCostRecalculation:
         expected = (
             1000 * cost.hard_violations
             + cost.s1_gaps + cost.s2_repeats + cost.s3_non_consecutive
+            + cost.s4_teacher_preferences + cost.s5_teacher_consecutive
         )
         assert cost.total_cost == expected
 

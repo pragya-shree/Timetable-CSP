@@ -455,3 +455,51 @@ class TestRenderTimetableGrid:
         except Exception as exc:
             if "MagicMock" not in str(type(exc)) and "MagicMock" not in str(exc):
                 pytest.fail(f"Unexpected exception from _render_timetable_grid: {exc!r}")
+
+
+# ---------------------------------------------------------------------------
+# 7. Special characters, continuation cells, and conflict indicators
+# ---------------------------------------------------------------------------
+
+class TestSpecialCharactersAndContinuationCells:
+    def test_subject_name_with_pipe_symbol(self, mod):
+        """Subject name containing '|' must render properly without corrupting teacher/room metadata."""
+        df = pd.DataFrame({
+            "Mon": ["Theory | Computation\nDr. Turing | Room 101"]
+        }, index=["P1"])
+        html_out = mod._build_timetable_html(df, "class")
+        assert "Theory | Computation" in html_out or "Theory | Computation" in html_out
+        assert "Dr. Turing" in html_out
+        assert "Room 101" in html_out
+        assert "Teacher:" in html_out
+        assert "Room:" in html_out
+
+    def test_continuation_cell_exact_rendering(self, mod):
+        """Continuation cell must show continuation badge and handle clean subject name."""
+        df = pd.DataFrame({
+            "Mon": ["... Data Structures Lab (cont.)"]
+        }, index=["P2"])
+        html_out = mod._build_timetable_html(df, "class")
+        assert "tt-card-cont" in html_out
+        assert "Continuation" in html_out
+        assert "Data Structures Lab" in html_out
+
+    def test_multiple_sessions_conflict_box(self, mod):
+        """When multiple sessions overlap in a single slot, a conflict box must be rendered."""
+        df = pd.DataFrame({
+            "Mon": ["Physics\nDr. Smith | R1\nChemistry\nDr. Jones | R2"]
+        }, index=["P1"])
+        html_out = mod._build_timetable_html(df, "class")
+        assert "tt-conflict-box" in html_out
+        assert "Multiple Sessions / Conflict" in html_out
+
+    def test_lunch_and_empty_distinguishable(self, mod):
+        """Lunch break and empty periods must have distinct CSS classes."""
+        df = pd.DataFrame({
+            "Mon": ["[Lunch Break]", ""]
+        }, index=["P3", "P4"])
+        html_out = mod._build_timetable_html(df, "class")
+        assert "tt-card-lunch" in html_out
+        assert "tt-card-empty" in html_out
+        assert "Lunch Break" in html_out
+        assert "&mdash;" in html_out

@@ -52,8 +52,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from core.constraints import validate_timetable
-from core.cost import calculate_cost
+from core.cost import CostBreakdown, calculate_cost
 from core.models import TimetableDataset
+
 from core.sessions import (
     Placement,
     SessionVar,
@@ -145,10 +146,14 @@ class MinConflictsSolver:
         stagnation_limit: int = 150,
         deterministic: bool = False,
         record_cost_history: bool = False,
+        refine_soft_costs: bool = False,
+        soft_refinement_iterations: int = 500,
     ) -> None:
         self.dataset = dataset
         self.max_iterations = max_iterations
         self.time_limit_seconds = time_limit_seconds
+        self.refine_soft_costs = refine_soft_costs
+        self.soft_refinement_iterations = soft_refinement_iterations
         self.random_seed = random_seed
         self.initial_strategy = initial_strategy.lower().strip()
         self.random_walk_probability = random_walk_probability
@@ -351,6 +356,88 @@ class MinConflictsSolver:
 
         return self.rng.choice(best_placements)
 
+    def _refine_soft_quality(
+        self, initial_valid_tt: Timetable
+    ) -> tuple[Timetable, CostBreakdown, int]:
+        """Stage B: Local search refinement to optimize soft constraint quality.
+
+        Starting from a conflict-free valid timetable, iteratively tests safe
+        placement moves that preserve 0 hard violations while seeking lower soft cost.
+        Never introduces hard conflicts. Preserves the best valid timetable found.
+        """
+        best_tt = initial_valid_tt
+        best_cost_info = calculate_cost(best_tt)
+        current_assignments = dict(initial_valid_tt.assignments)
+
+        refinement_steps = 0
+        vars_list = list(self.variables)
+
+        for step in range(1, self.soft_refinement_iterations + 1):
+            if self.time_limit_seconds is not None:
+                if (time.perf_counter() - self.start_time) >= self.time_limit_seconds:
+                    break
+            refinement_steps += 1
+
+            # Select a variable
+            if self.deterministic:
+                var = vars_list[step % len(vars_list)]
+            else:
+                var = self.rng.choice(vars_list)
+
+            current_placement = current_assignments[var]
+            domain = self.domains[var]
+            if len(domain) <= 1:
+                continue
+
+            # Pick a candidate alternative placement
+            if self.deterministic:
+                candidate = domain[step % len(domain)]
+            else:
+                candidate = self.rng.choice(domain)
+
+            if candidate == current_placement:
+                continue
+
+            # Test if candidate move creates any hard collision (H1, H2, H3) with other sessions
+            has_collision = False
+            for d, p in candidate.get_occupied_slots(var.duration):
+                for other_v, other_pl in current_assignments.items():
+                    if other_v == var or other_pl is None:
+                        continue
+                    if (d, p) in other_pl.get_occupied_slots(other_v.duration):
+                        if (
+                            other_v.teacher_id == var.teacher_id
+                            or other_v.class_id == var.class_id
+                            or other_pl.room_id == candidate.room_id
+                        ):
+                            has_collision = True
+                            break
+                if has_collision:
+                    break
+
+            if has_collision:
+                continue
+
+            # Feasible move! Check cost
+            current_assignments[var] = candidate
+            trial_tt = Timetable(dataset=self.dataset, assignments=dict(current_assignments))
+            trial_cost_info = calculate_cost(trial_tt)
+
+            if trial_cost_info.hard_violations == 0 and trial_cost_info.total_cost < best_cost_info.total_cost:
+                best_tt = trial_tt
+                best_cost_info = trial_cost_info
+                if self.record_cost_history:
+                    self.cost_history.append((self.iterations + step, trial_cost_info.total_cost))
+            elif trial_cost_info.hard_violations == 0 and trial_cost_info.total_cost == best_cost_info.total_cost:
+                if not self.deterministic and self.rng.random() < 0.20:
+                    pass
+                else:
+                    current_assignments[var] = current_placement
+            else:
+                current_assignments[var] = current_placement
+
+        return best_tt, best_cost_info, refinement_steps
+
     def solve(self) -> MinConflictsResult:
         """Executes the Min-Conflicts local search algorithm.
 
@@ -388,6 +475,8 @@ class MinConflictsSolver:
                         "s1_gaps": cost_info.s1_gaps,
                         "s2_repeats": cost_info.s2_repeats,
                         "s3_non_consecutive": cost_info.s3_non_consecutive,
+                        "s4_teacher_preferences": cost_info.s4_teacher_preferences,
+                        "s5_teacher_consecutive": cost_info.s5_teacher_consecutive,
                     },
                     total_cost=cost_info.total_cost,
                     random_seed=self.random_seed,
@@ -412,16 +501,20 @@ class MinConflictsSolver:
             tt = Timetable(dataset=self.dataset, assignments=dict(self.assignments))
             val = validate_timetable(tt)
             if val.is_valid:
+                if self.refine_soft_costs:
+                    tt, cost_info, extra_steps = self._refine_soft_quality(tt)
+                    self.iterations += extra_steps
+                else:
+                    cost_info = calculate_cost(tt)
                 elapsed = time.perf_counter() - self.start_time
-                cost_info = calculate_cost(tt)
                 # Record initial cost (iteration 0)
-                self.cost_history.append((0, cost_info.total_cost))
+                self.cost_history.append((self.iterations, cost_info.total_cost))
                 return MinConflictsResult(
                     success=True,
                     status="solved",
                     timetable=tt,
                     runtime_seconds=elapsed,
-                    iterations=0,
+                    iterations=self.iterations,
                     conflicted_variable_selections=0,
                     candidate_placements_evaluated=self.candidate_placements_evaluated,
                     initial_hard_conflicts=self.initial_hard_conflicts,
@@ -430,6 +523,8 @@ class MinConflictsSolver:
                         "s1_gaps": cost_info.s1_gaps,
                         "s2_repeats": cost_info.s2_repeats,
                         "s3_non_consecutive": cost_info.s3_non_consecutive,
+                        "s4_teacher_preferences": cost_info.s4_teacher_preferences,
+                        "s5_teacher_consecutive": cost_info.s5_teacher_consecutive,
                     },
                     total_cost=cost_info.total_cost,
                     random_seed=self.random_seed,
@@ -458,10 +553,12 @@ class MinConflictsSolver:
                 tt = Timetable(dataset=self.dataset, assignments=dict(self.assignments))
                 val = validate_timetable(tt)
                 if val.is_valid:
+                    if self.refine_soft_costs:
+                        tt, cost_info, extra_steps = self._refine_soft_quality(tt)
+                        self.iterations += extra_steps
+                    else:
+                        cost_info = calculate_cost(tt)
                     elapsed = time.perf_counter() - self.start_time
-                    cost_info = calculate_cost(tt)
-                    # Record cost for this iteration
-                    self.cost_history.append((self.iterations, cost_info.total_cost))
                     result = MinConflictsResult(
                         success=True,
                         status="solved",
@@ -476,6 +573,8 @@ class MinConflictsSolver:
                             "s1_gaps": cost_info.s1_gaps,
                             "s2_repeats": cost_info.s2_repeats,
                             "s3_non_consecutive": cost_info.s3_non_consecutive,
+                            "s4_teacher_preferences": cost_info.s4_teacher_preferences,
+                            "s5_teacher_consecutive": cost_info.s5_teacher_consecutive,
                         },
                         total_cost=cost_info.total_cost,
                         random_seed=self.random_seed,
@@ -529,8 +628,12 @@ class MinConflictsSolver:
                 tt = Timetable(dataset=self.dataset, assignments=dict(self.assignments))
                 val = validate_timetable(tt)
                 if val.is_valid:
+                    if self.refine_soft_costs:
+                        tt, cost_info, extra_steps = self._refine_soft_quality(tt)
+                        self.iterations += extra_steps
+                    else:
+                        cost_info = calculate_cost(tt)
                     elapsed = time.perf_counter() - self.start_time
-                    cost_info = calculate_cost(tt)
                     return MinConflictsResult(
                         success=True,
                         status="solved",
@@ -545,6 +648,8 @@ class MinConflictsSolver:
                             "s1_gaps": cost_info.s1_gaps,
                             "s2_repeats": cost_info.s2_repeats,
                             "s3_non_consecutive": cost_info.s3_non_consecutive,
+                            "s4_teacher_preferences": cost_info.s4_teacher_preferences,
+                            "s5_teacher_consecutive": cost_info.s5_teacher_consecutive,
                         },
                         total_cost=cost_info.total_cost,
                         random_seed=self.random_seed,
@@ -577,6 +682,8 @@ class MinConflictsSolver:
                 "s1_gaps": cost_info.s1_gaps,
                 "s2_repeats": cost_info.s2_repeats,
                 "s3_non_consecutive": cost_info.s3_non_consecutive,
+                "s4_teacher_preferences": cost_info.s4_teacher_preferences,
+                "s5_teacher_consecutive": cost_info.s5_teacher_consecutive,
             },
             total_cost=cost_info.total_cost,
             random_seed=self.random_seed,
@@ -595,6 +702,8 @@ def solve_min_conflicts(
     stagnation_limit: int = 150,
     deterministic: bool = False,
     record_cost_history: bool = False,
+    refine_soft_costs: bool = False,
+    soft_refinement_iterations: int = 500,
 ) -> MinConflictsResult:
     """Convenience wrapper to solve a timetable dataset using Min-Conflicts CSP local search.
 
@@ -622,5 +731,7 @@ def solve_min_conflicts(
         stagnation_limit=stagnation_limit,
         deterministic=deterministic,
         record_cost_history=record_cost_history,
+        refine_soft_costs=refine_soft_costs,
+        soft_refinement_iterations=soft_refinement_iterations,
     )
     return solver.solve()

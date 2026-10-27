@@ -53,3 +53,24 @@ def test_large_dataset_structure_and_feasibility():
     # Programmatic feasibility checks
     issues = check_dataset_feasibility(dataset)
     assert len(issues) == 0, f"Large dataset has feasibility bottlenecks: {issues}"
+
+
+def test_medium_tight_dataset_structure_and_feasibility():
+    """Verify medium_tight_dataset.json satisfies structure and feasibility."""
+    path = Path("datasets/medium_tight_dataset.json")
+    assert path.exists(), "medium_tight_dataset.json must exist."
+
+    dataset = load_dataset_from_file(path)
+
+    assert len(dataset.classes) == 4
+    assert len(dataset.teachers) == 4
+    assert len(dataset.rooms) == 3  # 2 classrooms + 1 shared lab
+    assert len(dataset.time_structure.days) == 5
+    assert dataset.time_structure.periods_per_day == 6
+
+
+    has_lab = any(s.type == "lab" for s in dataset.subjects.values())
+    assert has_lab is True
+
+    issues = check_dataset_feasibility(dataset)
+    assert len(issues) == 0, f"Medium tight dataset has feasibility bottlenecks: {issues}"

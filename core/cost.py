@@ -32,7 +32,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from core.constraints import validate_timetable
-from core.sessions import Timetable
+from core.sessions import Placement, SessionVar, Timetable
+
 
 
 @dataclass(frozen=True)
@@ -40,7 +41,9 @@ class SoftWeights:
     """Configurable penalty multipliers for soft constraint evaluation."""
     w_s1: int = 1  # Weight for class timetable gaps
     w_s2: int = 1  # Weight for same-subject duplicate lectures in a day
-    w_s3: int = 1  # Weight for non-consecutive or interrupted lab periods
+    w_s3: int = 1  # Weight for non-consecutive or separated lab periods
+    w_s4: int = 1  # Weight for teacher preferred slots
+    w_s5: int = 1  # Weight for teacher consecutive lectures (>2)
 
 
 @dataclass
@@ -54,10 +57,35 @@ class CostBreakdown:
     s2_cost: int
     s3_non_consecutive: int
     s3_cost: int
-    total_soft_cost: int
-    total_cost: int
-    is_complete: bool
-    is_valid: bool
+    s4_teacher_preferences: int = 0
+    s4_cost: int = 0
+    s5_teacher_consecutive: int = 0
+    s5_cost: int = 0
+    total_soft_cost: int = 0
+    total_cost: int = 0
+    is_complete: bool = False
+    is_valid: bool = False
+
+    def to_dict(self) -> dict[str, int | bool]:
+        """Returns dictionary representation of cost breakdown."""
+        return {
+            "hard_violations": self.hard_violations,
+            "hard_cost": self.hard_cost,
+            "s1_gaps": self.s1_gaps,
+            "s1_cost": self.s1_cost,
+            "s2_repeats": self.s2_repeats,
+            "s2_cost": self.s2_cost,
+            "s3_non_consecutive": self.s3_non_consecutive,
+            "s3_cost": self.s3_cost,
+            "s4_teacher_preferences": self.s4_teacher_preferences,
+            "s4_cost": self.s4_cost,
+            "s5_teacher_consecutive": self.s5_teacher_consecutive,
+            "s5_cost": self.s5_cost,
+            "total_soft_cost": self.total_soft_cost,
+            "total_cost": self.total_cost,
+            "is_complete": self.is_complete,
+            "is_valid": self.is_valid,
+        }
 
 
 def calculate_s1_gaps(timetable: Timetable) -> int:
@@ -123,31 +151,21 @@ def calculate_s2_repeats(timetable: Timetable) -> int:
 
 
 def calculate_s3_non_consecutive_labs(timetable: Timetable) -> int:
-    """S3: Ensure lab sessions occupy consecutive periods without interruption.
+    """S3: Ensure lab sessions occupy consecutive periods and avoid disjoint lab blocks.
     
-    Penalizes:
-    1. Interrupted lab placement: A multi-period lab whose occupied slots span
-       over a class lunch slot or a global blocked period.
-    2. Multiple lab sessions of the same lab subject scheduled on the same day
-       for the same class that are placed with a gap between them.
+    Atomic lab sessions (duration >= 2) already guarantee that periods within
+    a single lab session are consecutive.
+    Placements spanning lunch or blocked periods are strict hard violations (H9, H6)
+    and are not penalized here to avoid double-counting hard violations.
+
+    Soft preference evaluated:
+    When multiple lab sessions of the same lab subject are scheduled for the same class
+    on the same day, penalize unnecessary gaps between them to keep practical lab
+    learning contiguous.
     """
     penalties = 0
-    dataset = timetable.dataset
-    ts = dataset.time_structure
 
-    # 1. Check for single lab placements interrupted by lunch or blocked periods
-    for var, placement in timetable.get_placed_sessions():
-        if var.session_type == "lab" and var.duration > 1:
-            class_group = dataset.classes.get(var.class_id)
-            occupied = placement.get_occupied_slots(var.duration)
-            for day, p in occupied:
-                # If a lab slot falls on lunch or blocked slot, the lab is interrupted
-                if class_group and p == class_group.lunch_slot:
-                    penalties += 1
-                if ts.is_blocked(day, p):
-                    penalties += 1
-
-    # 2. Check for multiple lab sessions of same subject on same day separated by a gap
+    # Check for multiple lab sessions of same subject on same day separated by a gap
     lab_sessions_by_day: dict[tuple[str, str, int], list[tuple[int, int]]] = defaultdict(list)
     for var, placement in timetable.get_placed_sessions():
         if var.session_type == "lab":
@@ -168,6 +186,85 @@ def calculate_s3_non_consecutive_labs(timetable: Timetable) -> int:
     return penalties
 
 
+def calculate_s4_teacher_preferences(timetable: Timetable) -> int:
+    """S4: Respect teacher preferences (penalize teaching outside preferred slots).
+
+    Rules:
+    - If a teacher has not specified preferred slots (preferred_slots is empty),
+      they have no preference constraint; 0 penalty is incurred.
+    - If a teacher specifies preferred_slots, any occupied teaching period for that
+      teacher that falls outside their preferred_slots incurs 1 penalty.
+    - Multi-period sessions are evaluated on every occupied slot.
+    - Teacher availability (unavailable_slots) is a strict hard constraint (H6)
+      and is completely separate from soft preferences.
+    """
+    penalties = 0
+    dataset = timetable.dataset
+
+    for var, placement in timetable.get_placed_sessions():
+        teacher = dataset.teachers.get(var.teacher_id)
+        if not teacher or not teacher.preferred_slots:
+            continue
+        preferred_set = set(teacher.preferred_slots)
+        for slot in placement.get_occupied_slots(var.duration):
+            if slot not in preferred_set:
+                penalties += 1
+
+    return penalties
+
+
+def calculate_s5_teacher_consecutive_lectures(timetable: Timetable) -> int:
+    """S5: Avoid more than 2 consecutive lectures for a teacher on any day.
+
+    Rules:
+    - Evaluated per teacher, per day.
+    - A contiguous sequence of teaching periods of length L > allowed incurs (L - allowed) penalties.
+    - For independent lectures, allowed = 2 (more than 2 consecutive lectures are penalized).
+    - An intentional atomic lab block of duration D >= 2 alone incurs 0 penalties (allowed = max(2, D)).
+    - Mixed sequences (e.g. lab + lecture) extending beyond the atomic block are penalized.
+    - Non-teaching periods, class gaps, and lunch breaks naturally break streaks.
+    - Occupied periods are deduplicated per teacher-day.
+    """
+    total_penalties = 0
+    teacher_day_sessions: dict[tuple[str, int], list[tuple[SessionVar, Placement]]] = defaultdict(list)
+
+    for var, placement in timetable.get_placed_sessions():
+        teacher_day_sessions[(var.teacher_id, placement.day)].append((var, placement))
+
+    for (teacher_id, day), sessions in teacher_day_sessions.items():
+        # Map each occupied period to the session variables occupying it
+        period_to_vars: dict[int, list[SessionVar]] = defaultdict(list)
+        for var, plc in sessions:
+            for p in plc.get_occupied_periods(var.duration):
+                period_to_vars[p].append(var)
+
+        sorted_periods = sorted(period_to_vars.keys())
+        if len(sorted_periods) <= 2:
+            continue
+
+        # Partition sorted periods into contiguous streaks
+        streaks: list[list[int]] = []
+        current_streak = [sorted_periods[0]]
+        for i in range(1, len(sorted_periods)):
+            if sorted_periods[i] == sorted_periods[i - 1] + 1:
+                current_streak.append(sorted_periods[i])
+            else:
+                streaks.append(current_streak)
+                current_streak = [sorted_periods[i]]
+        streaks.append(current_streak)
+
+        for streak in streaks:
+            participating_vars = {v for p in streak for v in period_to_vars[p]}
+            max_session_dur = max((v.duration for v in participating_vars), default=1)
+            allowed = max(2, max_session_dur)
+            streak_len = len(streak)
+            if streak_len > allowed:
+                total_penalties += (streak_len - allowed)
+
+    return total_penalties
+
+
+
 def calculate_cost(
     timetable: Timetable,
     weights: SoftWeights | None = None,
@@ -175,7 +272,7 @@ def calculate_cost(
     """Computes total cost and detailed breakdown of hard and soft constraint violations.
     
     Cost Formula:
-        total_cost = 1000 * hard_violations + (w1 * S1 + w2 * S2 + w3 * S3)
+        total_cost = 1000 * hard_violations + (w1 * S1 + w2 * S2 + w3 * S3 + w4 * S4 + w5 * S5)
     """
     if weights is None:
         weights = SoftWeights()
@@ -195,7 +292,13 @@ def calculate_cost(
     s3_non_consec = calculate_s3_non_consecutive_labs(timetable)
     s3_cost = s3_non_consec * weights.w_s3
 
-    total_soft_cost = s1_cost + s2_cost + s3_cost
+    s4_prefs = calculate_s4_teacher_preferences(timetable)
+    s4_cost = s4_prefs * weights.w_s4
+
+    s5_consec = calculate_s5_teacher_consecutive_lectures(timetable)
+    s5_cost = s5_consec * weights.w_s5
+
+    total_soft_cost = s1_cost + s2_cost + s3_cost + s4_cost + s5_cost
     total_cost = hard_cost + total_soft_cost
 
     return CostBreakdown(
@@ -207,6 +310,10 @@ def calculate_cost(
         s2_cost=s2_cost,
         s3_non_consecutive=s3_non_consec,
         s3_cost=s3_cost,
+        s4_teacher_preferences=s4_prefs,
+        s4_cost=s4_cost,
+        s5_teacher_consecutive=s5_consec,
+        s5_cost=s5_cost,
         total_soft_cost=total_soft_cost,
         total_cost=total_cost,
         is_complete=val_result.is_complete,

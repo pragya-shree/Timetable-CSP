@@ -137,10 +137,12 @@ class BacktrackingSolver:
         use_degree: bool = False,
         use_fc: bool = False,
         variable_ordering: str | None = None,
+        optimize_quality: bool = False,
     ) -> None:
         self.dataset = dataset
         self.max_nodes = max_nodes
         self.time_limit_seconds = time_limit_seconds
+        self.optimize_quality = optimize_quality
 
         # Resolve variable ordering / forward checking configuration
         if variable_ordering is not None:
@@ -472,6 +474,8 @@ class BacktrackingSolver:
         candidate_placements = (
             list(self.current_domains[current_var]) if self.use_fc else self.domains[current_var]
         )
+        if self.optimize_quality:
+            candidate_placements = self._order_candidate_placements(current_var, candidate_placements)
 
         for placement in candidate_placements:
             # Check budget inside candidate loop for responsiveness
@@ -513,6 +517,66 @@ class BacktrackingSolver:
         # All candidate placements exhausted for current_var: backtrack
         self.backtracks += 1
         return None
+
+    def _order_candidate_placements(
+        self, current_var: SessionVar, candidates: list[Placement]
+    ) -> list[Placement]:
+        """Optionally orders placements by estimated soft penalty to improve schedule quality.
+
+        When optimize_quality is False, returns candidates in default order.
+        When True, scores each placement using partial soft constraints (S1, S2, S4, S5).
+        """
+        if not self.optimize_quality or len(candidates) <= 1:
+            return candidates
+
+        teacher = self.dataset.teachers.get(current_var.teacher_id)
+        preferred_set = set(teacher.preferred_slots) if teacher and teacher.preferred_slots else None
+
+        scored: list[tuple[int, int, Placement]] = []
+        for idx, p in enumerate(candidates):
+            penalty = 0
+            # S2: Avoid multiple theory lectures of same subject on same day
+            if current_var.session_type == "theory":
+                for v, pl in self.assignments.items():
+                    if (
+                        pl is not None
+                        and pl.day == p.day
+                        and v.class_id == current_var.class_id
+                        and v.subject_id == current_var.subject_id
+                        and v.session_type == "theory"
+                    ):
+                        penalty += 10
+
+            # S4: Teacher preferred slots
+            if preferred_set is not None:
+                for slot in p.get_occupied_slots(current_var.duration):
+                    if slot not in preferred_set:
+                        penalty += 3
+
+            # S5: Teacher consecutive lectures streak
+            teacher_day_slots = {
+                slot[1]
+                for v, pl in self.assignments.items()
+                if pl is not None and pl.day == p.day and v.teacher_id == current_var.teacher_id
+                for slot in pl.get_occupied_slots(v.duration)
+            }
+            new_slots = set(p.get_occupied_periods(current_var.duration))
+            combined = teacher_day_slots | new_slots
+            if len(combined) > 2:
+                sorted_comb = sorted(combined)
+                streak = 1
+                for s_i in range(1, len(sorted_comb)):
+                    if sorted_comb[s_i] == sorted_comb[s_i - 1] + 1:
+                        streak += 1
+                        if streak > 2:
+                            penalty += 4
+                    else:
+                        streak = 1
+
+            scored.append((penalty, idx, p))
+
+        scored.sort(key=lambda item: (item[0], item[1]))
+        return [item[2] for item in scored]
 
     def solve(self) -> BacktrackingResult:
         """Executes the backtracking search algorithm.
@@ -558,6 +622,8 @@ class BacktrackingSolver:
                         "s1_gaps": cost.s1_gaps,
                         "s2_repeats": cost.s2_repeats,
                         "s3_non_consecutive": cost.s3_non_consecutive,
+                        "s4_teacher_preferences": cost.s4_teacher_preferences,
+                        "s5_teacher_consecutive": cost.s5_teacher_consecutive,
                     },
                     total_cost=cost.total_cost,
                     failure_reason=self.failure_reason,
@@ -584,6 +650,8 @@ class BacktrackingSolver:
                     "s1_gaps": cost.s1_gaps,
                     "s2_repeats": cost.s2_repeats,
                     "s3_non_consecutive": cost.s3_non_consecutive,
+                    "s4_teacher_preferences": cost.s4_teacher_preferences,
+                    "s5_teacher_consecutive": cost.s5_teacher_consecutive,
                 },
                 total_cost=cost.total_cost,
                 failure_reason=None,
@@ -614,6 +682,8 @@ class BacktrackingSolver:
                 "s1_gaps": cost.s1_gaps,
                 "s2_repeats": cost.s2_repeats,
                 "s3_non_consecutive": cost.s3_non_consecutive,
+                "s4_teacher_preferences": cost.s4_teacher_preferences,
+                "s5_teacher_consecutive": cost.s5_teacher_consecutive,
             },
             total_cost=cost.total_cost,
             failure_reason=self.failure_reason,
@@ -629,6 +699,7 @@ def solve_backtracking(
     use_degree: bool = False,
     use_fc: bool = False,
     variable_ordering: str | None = None,
+    optimize_quality: bool = False,
 ) -> BacktrackingResult:
     """Solves a timetable dataset using Backtracking CSP (Plain, MRV, MRV + Degree, or MRV + Degree + FC).
     
@@ -652,6 +723,7 @@ def solve_backtracking(
         use_degree=use_degree,
         use_fc=use_fc,
         variable_ordering=variable_ordering,
+        optimize_quality=optimize_quality,
     )
     return solver.solve()
 

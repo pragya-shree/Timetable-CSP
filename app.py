@@ -45,6 +45,7 @@ from core.constraints import validate_timetable
 from core.cost import calculate_cost
 from core.backtracking import solve_backtracking
 from core.min_conflicts import solve_min_conflicts
+from core.simulated_annealing import solve_hybrid_simulated_annealing
 from core.bulk_importer import (
     parse_pasted_tabular_text,
     parse_uploaded_file,
@@ -91,12 +92,22 @@ DATASETS = {
     "Large Dataset": str(_ROOT / "datasets" / "large_dataset.json"),
 }
 
+ALL_DATASETS = {
+    **DATASETS,
+    "Medium Tight Dataset": str(_ROOT / "datasets" / "medium_tight_dataset.json"),
+}
+
 ALGORITHMS = {
     "Plain Backtracking":              dict(use_mrv=False, use_degree=False, use_fc=False),
     "MRV Backtracking":                dict(use_mrv=True,  use_degree=False, use_fc=False),
     "MRV + Degree Heuristic":          dict(use_mrv=True,  use_degree=True,  use_fc=False),
     "MRV + Degree + Forward Checking": dict(use_mrv=True,  use_degree=True,  use_fc=True),
     "Min-Conflicts":                   None,   # handled separately
+}
+
+ALL_ALGORITHMS = {
+    **ALGORITHMS,
+    "Hybrid CSP + Simulated Annealing": "hybrid_sa",
 }
 
 ALGO_DESCRIPTIONS = {
@@ -117,6 +128,10 @@ ALGO_DESCRIPTIONS = {
     "Min-Conflicts": (
         "Local search heuristic. Begins with a complete initial assignment and iteratively "
         "repairs the variable with the highest conflict count."
+    ),
+    "Hybrid CSP + Simulated Annealing": (
+        "Two-stage solver: finds a guaranteed valid timetable using CSP Backtracking (MRV + Degree + FC), "
+        "then refines soft quality (S1–S5) using Simulated Annealing while strictly maintaining zero hard clashes."
     ),
 }
 
@@ -485,7 +500,7 @@ def _build_timetable_html(grid_df: pd.DataFrame, group_by: str = "class") -> str
                 )
                 i += 1
                 continue
-            if line.startswith("... ") or "(cont.)" in line.lower():
+            if (line.startswith("... ") and line.endswith("(cont.)")) or line == "[Continuation]":
                 clean_subj = line.replace("... ", "").replace("(cont.)", "").strip()
                 cards.append(
                     f'<div class="tt-card tt-card-cont" title="{html.escape(line)}">'
@@ -506,8 +521,11 @@ def _build_timetable_html(grid_df: pd.DataFrame, group_by: str = "class") -> str
 
             session_count += 1
             meta1, meta2 = "", ""
-            if "|" in meta_line:
-                parts = [p.strip() for p in meta_line.split("|", 1)]
+            if " | " in meta_line:
+                parts = meta_line.split(" | ", 1)
+                meta1, meta2 = parts[0], parts[1]
+            elif "|" in meta_line:
+                parts = meta_line.split("|", 1)
                 meta1, meta2 = parts[0], parts[1]
             elif meta_line:
                 meta1 = meta_line
@@ -626,16 +644,16 @@ def _make_grid(timetable: Timetable | None, group_by: str) -> dict[str, pd.DataF
 
     for var, plc in timetable.get_placed_sessions():
         subj = ds.subjects.get(var.subject_id)
-        subj_name = subj.name if subj else var.subject_id
+        subj_name = (subj.name if subj else var.subject_id).replace("\r\n", " ").replace("\n", " ")
 
         cg = ds.classes.get(var.class_id)
-        class_name = cg.name if cg else var.class_id
+        class_name = (cg.name if cg else var.class_id).replace("\r\n", " ").replace("\n", " ")
 
         teacher = ds.teachers.get(var.teacher_id)
-        teacher_name = teacher.name if teacher else var.teacher_id
+        teacher_name = (teacher.name if teacher else var.teacher_id).replace("\r\n", " ").replace("\n", " ")
 
         room = ds.rooms.get(plc.room_id)
-        room_name = room.name if room else plc.room_id
+        room_name = (room.name if room else plc.room_id).replace("\r\n", " ").replace("\n", " ")
 
         occupied = plc.get_occupied_slots(var.duration)
         first_p = min(p for _, p in occupied) if occupied else plc.start_period
@@ -1028,7 +1046,7 @@ def _render_generation_controls(validated_dataset: TimetableDataset | None):
 
     gen_col1, gen_col2 = st.columns([2, 1])
     with gen_col1:
-        algo_choice = st.selectbox("Select Algorithm", list(ALGORITHMS.keys()), key="unified_algo_choice")
+        algo_choice = st.selectbox("Select Algorithm", list(ALL_ALGORITHMS.keys()), key="unified_algo_choice")
     with gen_col2:
         st.caption("Algorithm Overview:")
         st.markdown(ALGO_DESCRIPTIONS[algo_choice])
@@ -1040,6 +1058,11 @@ def _render_generation_controls(validated_dataset: TimetableDataset | None):
             mc_time = p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_mc_time")
             mc_seed = p3.number_input("Random Seed", 0, 999_999, 42, key="uni_mc_seed")
             mc_strat = st.selectbox("Initial Strategy", ["random", "greedy"], key="uni_mc_strat")
+        elif algo_choice == "Hybrid CSP + Simulated Annealing":
+            p1, p2, p3 = st.columns(3)
+            sa_iter = p1.number_input("Max Iterations", 100, 50_000, 2000, 100, key="uni_sa_iter")
+            sa_time = p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_sa_time")
+            sa_seed = p3.number_input("Random Seed", 0, 999_999, 42, key="uni_sa_seed")
         else:
             p1, p2 = st.columns(2)
             bt_nodes = p1.number_input("Max Nodes", 1000, 10_000_000, 100_000, 10_000, key="uni_bt_nodes")
@@ -1055,6 +1078,14 @@ def _render_generation_controls(validated_dataset: TimetableDataset | None):
                     time_limit_seconds=float(mc_time),
                     random_seed=int(mc_seed),
                     initial_strategy=mc_strat,
+                    record_cost_history=True,
+                )
+            elif algo_choice == "Hybrid CSP + Simulated Annealing":
+                gen_result = solve_hybrid_simulated_annealing(
+                    dataset=validated_dataset,
+                    max_iterations=int(sa_iter),
+                    time_limit_seconds=float(sa_time),
+                    random_seed=int(sa_seed),
                     record_cost_history=True,
                 )
             else:
