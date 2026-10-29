@@ -1,0 +1,37 @@
+flowchart LR
+    subgraph VARS ["Variables (X) — SessionVar"]
+        direction TB
+        V1["<b>Theory SessionVar</b><br/>id: 'C1_MATH_1'<br/>class_id: 'C1'<br/>subject_id: 'MATH'<br/>teacher_id: 'T1'<br/>duration: 1 period<br/>session_type: 'theory'"]
+        V2["<b>Lab SessionVar (Atomic)</b><br/>id: 'C1_PHYLAB_1'<br/>class_id: 'C1'<br/>subject_id: 'PHYLAB'<br/>teacher_id: 'T2'<br/>duration: 2 consecutive periods<br/>session_type: 'lab'"]
+    end
+
+    subgraph DOMAINS ["Domains (D) — Placement"]
+        direction TB
+        PLC["<b>Placement Coordinates</b><br/>(day, start_period, room_id)<br/>Occupies periods:<br/>{p, ..., p + duration - 1}"]
+        UNARY["<b>Unary Pruning Filters</b><br/>• H5 Room Type (Lab in lab, theory in classroom)<br/>• H4 Capacity (room.capacity >= class.strength)<br/>• H6 Availability ((day, p) not in teacher.unavailable_slots)<br/>• H6 Blocked Slots ((day, p) not in blocked_periods)<br/>• H9 Lunch Break (p != class.lunch_slot)<br/>• STRUCT Bounds (p + duration <= periods_per_day)"]
+        PLC --- UNARY
+    end
+
+    subgraph CONSTRAINTS ["Constraints (C) — Hard & Soft"]
+        direction TB
+        subgraph BINARY ["Binary Clashes (Evaluated per overlapping period)"]
+            H1["<b>H1 Teacher Clash</b><br/>Teacher cannot be double-booked<br/>slots(S1) ∩ slots(S2) = ∅ if teacher(S1) == teacher(S2)"]
+            H2["<b>H2 Class Clash</b><br/>Class batch cannot attend 2 sessions<br/>slots(S1) ∩ slots(S2) = ∅ if class(S1) == class(S2)"]
+            H3["<b>H3 Room Clash</b><br/>Room cannot host 2 sessions<br/>slots(S1) ∩ slots(S2) = ∅ if room(S1) == room(S2)"]
+        end
+        subgraph GLOBAL ["Global & Quota Constraints"]
+            H7["<b>H7 Weekly Syllabus Hours</b><br/>|assigned_periods - required_periods| == 0"]
+            H8["<b>H8 Teacher Max Load</b><br/>assigned_periods <= teacher.max_weekly_load"]
+        end
+        subgraph SOFT ["Soft Quality Metrics (Weights w1-w5)"]
+            S1["S1: Class Day Idle Gaps (w1=1)"]
+            S2["S2: Subject Daily Repeats (w2=1)"]
+            S3["S3: Lab Inter-Session Continuity (w3=1)"]
+            S4["S4: Teacher Slot Preferences (w4=1)"]
+            S5["S5: Teacher Max Consec Lectures >2 (w5=2)"]
+        end
+    end
+
+    VARS -->|Assign Placement| DOMAINS
+    DOMAINS -->|Subject to| CONSTRAINTS
+    CONSTRAINTS --> OBJECTIVE["<b>Objective Cost Evaluation</b><br/>Total Cost = 1000 × (H1..H9 + STRUCT) + Σ (w_i × S_i)"]

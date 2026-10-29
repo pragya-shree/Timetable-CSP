@@ -1,0 +1,54 @@
+flowchart TD
+    TIMETABLE[Timetable State: Placed Sessions & Unassigned Variables] --> SPLIT{Constraint Evaluation}
+
+    subgraph HARD_TIER ["Hard Constraints (H1–H9 + STRUCT) — Feasibility Boundary"]
+        direction TB
+        H1["<b>H1 Teacher Clash</b>: 1 per conflicting pair of sessions per overlapping period"]
+        H2["<b>H2 Class Clash</b>: 1 per conflicting pair of sessions per overlapping period"]
+        H3["<b>H3 Room Clash</b>: 1 per conflicting pair of sessions per overlapping period"]
+        H4["<b>H4 Room Capacity</b>: 1 per session where room.capacity < class.strength"]
+        H5["<b>H5 Room Type</b>: 1 per session in incompatible room (theory in lab / lab in classroom)"]
+        H6["<b>H6 Availability & Blocked</b>: 1 per occupied slot on teacher unavailable or global blocked slot"]
+        H7["<b>H7 Weekly Syllabus Hours</b>: |assigned_periods - required_periods| per (class, subject)<br/><i>Unassigned sessions automatically count as missing periods!</i>"]
+        H8["<b>H8 Teacher Max Load</b>: max(0, assigned_periods - teacher.max_weekly_load) per teacher"]
+        H9["<b>H9 Class Lunch Break</b>: 1 per occupied slot overlapping class.lunch_slot"]
+        STRUCT["<b>STRUCT Structural Validity</b>: 1 per out-of-bounds slot, overflow period, or invalid teacher-subject assignment"]
+
+        HARD_SUM["Sum Total Hard Violations<br/><code>hard_violation_count</code>"]
+        H1 --> HARD_SUM
+        H2 --> HARD_SUM
+        H3 --> HARD_SUM
+        H4 --> HARD_SUM
+        H5 --> HARD_SUM
+        H6 --> HARD_SUM
+        H7 --> HARD_SUM
+        H8 --> HARD_SUM
+        H9 --> HARD_SUM
+        STRUCT --> HARD_SUM
+        HARD_PENALTY["<b>Hard Penalty Cost</b><br/><code>1000 × hard_violation_count</code><br/><i>Dominates cost function ensuring feasible > infeasible</i>"]
+        HARD_SUM --> HARD_PENALTY
+    end
+
+    subgraph SOFT_TIER ["Soft Constraints (S1–S5) — Pedagogical Quality Metrics"]
+        direction TB
+        S1["<b>S1 Class Daily Gaps</b> (w1 = 1.0)<br/>Idle periods between first and last lecture of class-day<br/><i>Excludes designated lunch break & blocked periods</i>"]
+        S2["<b>S2 Subject Daily Spreading</b> (w2 = 1.0)<br/>Penalizes (count - 1) for duplicate theory lectures on same day<br/><i>Atomic lab sessions are strictly exempt</i>"]
+        S3["<b>S3 Consecutive Labs Continuity</b> (w3 = 1.0)<br/>Atomic lab periods are consecutive by design;<br/>penalizes disjoint gap periods between separate lab blocks of same subject on same day"]
+        S4["<b>S4 Teacher Slot Preferences</b> (w4 = 1.0)<br/>1 penalty per occupied period outside teacher's preferred_slots<br/><i>0 penalty if teacher specified no preferences</i>"]
+        S5["<b>S5 Teacher Consecutive Hours</b> (w5 = 2.0)<br/>Penalizes runs of >2 consecutive teaching periods on same day<br/>Penalty = (streak_length - 2) × w5. Lunch/idle breaks streak."]
+
+        SOFT_SUM["<b>Weighted Soft Cost</b><br/><code>w1·S1 + w2·S2 + w3·S3 + w4·S4 + w5·S5</code>"]
+        S1 --> SOFT_SUM
+        S2 --> SOFT_SUM
+        S3 --> SOFT_SUM
+        S4 --> SOFT_SUM
+        S5 --> SOFT_SUM
+    end
+
+    SPLIT --> HARD_TIER
+    SPLIT --> SOFT_TIER
+
+    HARD_PENALTY --> TOTAL_COST["<b>Total Objective Cost</b><br/><code>total_cost = hard_cost + total_soft_cost</code><br/>Lower cost = Higher Timetable Quality"]
+    SOFT_SUM --> TOTAL_COST
+
+    TOTAL_COST --> STATUS_OUT["<b>Solution Status</b><br/>• is_valid: True iff complete & hard_violations == 0<br/>• is_complete: True iff 0 unassigned sessions"]

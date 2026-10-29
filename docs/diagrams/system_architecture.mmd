@@ -1,0 +1,72 @@
+flowchart TB
+    subgraph UI ["Presentation Layer (Streamlit app.py)"]
+        direction TB
+        DASH["📊 Dashboard<br/>Active status & history preview"]
+        CREATE["🛠️ Create Timetable<br/>Wizard, Table Editor, Matrix"]
+        MYTT["📁 My Timetables<br/>Persistent JSON storage manager"]
+        VIEW["👁️ View & Edit Timetable<br/>Class/Teacher/Room grids & clash editor"]
+        EXP["🔬 Experiments & Benchmarks<br/>Summary tables & convergence plots"]
+        EXPORT["📥 Export<br/>CSV, Excel (.xlsx), Dataset JSON"]
+    end
+
+    subgraph INGEST ["Data Ingestion & Building Layer"]
+        BI["core/bulk_importer.py<br/>TSV paste, CSV/XLSX parser,<br/>alias normalizer, templates"]
+        CB["core/custom_builder.py<br/>Relational validator,<br/>slot parser, dataset builder"]
+    end
+
+    subgraph CORE_MODELS ["Core Data Models & CSP State"]
+        DS["core/models.py<br/>TimetableDataset, ClassGroup,<br/>Teacher, Subject, Room, TimeStructure"]
+        SESS["core/sessions.py<br/>SessionVar (Atomic Theory dur=1, Lab dur=2)<br/>Placement (day, period, room)<br/>Timetable assignment container"]
+    end
+
+    subgraph SOLVERS ["AI Solver Engine"]
+        direction TB
+        subgraph BT_MODULE ["core/backtracking.py (Systematic Search)"]
+            BT_PLAIN["Plain Backtracking (DFS Baseline)"]
+            BT_MRV["MRV Heuristic (Min Remaining Values)"]
+            BT_DEG["Degree Heuristic (Tie-Breaker)"]
+            BT_FC["Forward Checking (Domain Lookahead & Wipeout Pruning)"]
+        end
+        subgraph MC_MODULE ["core/min_conflicts.py (Heuristic Local Search)"]
+            MC_BASE["Min-Conflicts Repair Loop<br/>Exact H1-H3 Clash Scoring"]
+            MC_ESC["Plateau Escaping<br/>Random Walk (p=0.05) & Stagnation Perturbation"]
+            MC_REF["Optional Two-Stage Soft Refinement"]
+        end
+        subgraph SA_MODULE ["core/simulated_annealing.py (Hybrid Optimization)"]
+            SA_P1["Phase 1: Backtracking MRV+Degree+FC Feasible Seed (H=0)"]
+            SA_P2["Phase 2: Metropolis Simulated Annealing<br/>Safe relocations & swaps minimizing soft cost"]
+        end
+    end
+
+    subgraph EVAL ["Constraint & Cost Evaluation Layer"]
+        VAL["core/constraints.py<br/>Hard Validators: H1–H9 + STRUCT<br/>Independent validate_timetable()"]
+        COST["core/cost.py<br/>Soft Evaluators: S1–S5<br/>calculate_cost() (1000*Hard + Weighted Soft)"]
+    end
+
+    subgraph STORAGE_EXP ["Storage & Experiment Execution"]
+        STORE["core/storage.py (TimetableStore)<br/>Atomic JSON persistence in saved_timetables/"]
+        RUN_EXP["experiments/run_experiments.py<br/>Standardized benchmarks, master seeds,<br/>CSV summaries & Matplotlib curves"]
+    end
+
+    %% Connections
+    CREATE --> BI
+    CREATE --> CB
+    BI --> CB
+    CB --> DS
+    DS --> SESS
+
+    SESS --> SOLVERS
+    SOLVERS --> EVAL
+    EVAL --> SESS
+
+    SOLVERS --> VIEW
+    SESS --> VIEW
+    VIEW --> VAL
+    VIEW --> COST
+    VIEW --> STORE
+
+    STORE --> MYTT
+    STORE --> DASH
+    SESS --> EXPORT
+    RUN_EXP --> EXP
+    RUN_EXP --> SOLVERS

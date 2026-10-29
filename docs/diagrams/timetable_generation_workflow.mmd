@@ -1,0 +1,50 @@
+flowchart TD
+    START([User Initiates Timetable Creation]) --> CHOICE{Input Method}
+
+    CHOICE -->|Predefined Benchmark| BENCH[Load small, medium_tight,<br/>or large dataset.json]
+    CHOICE -->|Quick Setup Wizard / Tables| MANUAL[Interactive Form Input<br/>Grid, Classes, Teachers, Rooms]
+    CHOICE -->|Bulk Ingestion| BULK[TSV Clipboard Paste,<br/>CSV, or XLSX Workbook]
+
+    BULK --> NORM[Header Normalization<br/>Alias Mapping to Canonical Schema]
+    NORM --> ROW_VAL{Row Validation}
+    ROW_VAL -->|Invalid Rows| ERR_ROW[Display Detailed Row Errors<br/>Preserve valid rows for correction]
+    ERR_ROW --> BULK
+
+    ROW_VAL -->|Valid Rows| BUILD_DS
+    MANUAL --> BUILD_DS[custom_builder.py<br/>Construct TimetableDataset]
+    BENCH --> BUILD_DS
+
+    BUILD_DS --> FEAS_CHECK{Pre-Solve Feasibility & Schema Checks}
+    FEAS_CHECK -->|Infeasible / Invalid Schema| FEAS_FAIL[Display Validation Errors<br/>Room capacity, total hours vs slot budget]
+    FEAS_FAIL --> CHOICE
+
+    FEAS_CHECK -->|Feasible & Valid| GEN_VARS[sessions.py<br/>Generate Atomic Session Variables<br/>Theory: dur=1, Lab: dur=2]
+    GEN_VARS --> FILTER_DOM[Pre-filter Unary Domains<br/>Room type, room cap, teacher unavail,<br/>class lunch, blocked slots]
+
+    FILTER_DOM --> ALGO_SELECT{Select AI Solver}
+
+    ALGO_SELECT -->|Systematic| BT[core/backtracking.py<br/>Plain / MRV / MRV+Degree / MRV+Degree+FC]
+    ALGO_SELECT -->|Local Search| MC[core/min_conflicts.py<br/>Min-Conflicts Repair Loop<br/>Random Walk & Stagnation Escape]
+    ALGO_SELECT -->|Hybrid| SA[core/simulated_annealing.py<br/>Phase 1: MRV+Degree+FC Feasible Seed<br/>Phase 2: Metropolis Soft Cost Annealing]
+
+    BT --> SOLVE_EXEC{Solver Execution}
+    MC --> SOLVE_EXEC
+    SA --> SOLVE_EXEC
+
+    SOLVE_EXEC -->|Budget Exceeded / Unsatisfiable| FAIL_RES[Report Failure Reason<br/>Nodes explored, time elapsed]
+    FAIL_RES --> RETRY{Adjust Settings?}
+    RETRY -->|Yes| ALGO_SELECT
+    RETRY -->|No| STOP([Aborted])
+
+    SOLVE_EXEC -->|Solution Found| INDEP_VAL[Independent Verification<br/>validate_timetable H1–H9 + STRUCT]
+    INDEP_VAL --> COST_EVAL[Soft Cost Evaluation<br/>calculate_cost S1–S5 Breakdown]
+
+    COST_EVAL --> ACTIVE[Set Active Timetable in Session State<br/>Display Summary Banner & Metrics]
+
+    ACTIVE --> POST_ACTION{User Action}
+    POST_ACTION -->|Inspect| GRIDS[View Timetable Grids<br/>By Class, Teacher, or Room]
+    POST_ACTION -->|Edit| MANUAL_EDIT[Manual Schedule Editor<br/>Move session slot/room with real-time clash check]
+    POST_ACTION -->|Persist| SAVE[Save to My Timetables<br/>Atomic JSON in saved_timetables/]
+    POST_ACTION -->|Export| EXPORT[Export to CSV, Excel .xlsx, or Dataset JSON]
+
+    MANUAL_EDIT --> INDEP_VAL

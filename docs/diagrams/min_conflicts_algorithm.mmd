@@ -1,0 +1,33 @@
+flowchart TD
+    START([solve_min_conflicts]) --> INIT[Generate Complete Initial Assignment<br/>Random or Greedy from valid unary domains]
+    INIT --> CHECK_DOM{Any variable has empty domain?}
+    CHECK_DOM -->|Yes| UNSAT([Return Status: UNSATISFIABLE])
+
+    CHECK_DOM -->|No: Valid Complete State| ASSESS[Assess Binary Conflicts for all variables<br/>H1 Teacher, H2 Class, H3 Room Clashes]
+
+    ASSESS --> CONF_CHECK{Conflicted Variables Count == 0?}
+    CONF_CHECK -->|Yes: 0 Hard Conflicts| INDEP_VAL[Independent Verification<br/>validate_timetable H1–H9 + STRUCT]
+    
+    INDEP_VAL --> TWO_STAGE{Two-Stage Soft Refinement Enabled?}
+    TWO_STAGE -->|No| SOLVED([Return Status: SOLVED<br/>Conflict-Free Timetable])
+    TWO_STAGE -->|Yes| SOFT_REFINE[Execute Local Moves Strictly Preserving 0 Hard Clashes<br/>Minimizing S1–S5 Soft Penalty Breakdown] --> SOLVED
+
+    CONF_CHECK -->|No: Conflicts Exist| ITER_CHECK{Iteration Limit (5000)<br/>or Time Limit Exceeded?}
+    ITER_CHECK -->|Yes| LIMIT([Return Status: LIMIT_REACHED<br/>Return Best Timetable Found])
+
+    ITER_CHECK -->|No: Search Continues| STAGNATION{Stagnation Check:<br/>Global min conflict unimproved for 150 steps?}
+    STAGNATION -->|Yes: Plateau Trapped| PERTURB[Force Random Perturbation on a Conflicted Variable<br/>Reset Stagnation Counter] --> EVAL_NEXT
+    
+    STAGNATION -->|No: Progress Normal| EVAL_NEXT[Select Conflicted Variable V<br/>Randomly from variables with conflict > 0]
+
+    EVAL_NEXT --> WALK_CHECK{Random Walk Check?<br/>p < random_walk_probability (0.05)}
+    
+    WALK_CHECK -->|Yes: Explore| CHOOSE_RANDOM[Pick Random Legal Placement from Domain(V)] --> APPLY_MOVE
+    
+    WALK_CHECK -->|No: Greedy Min-Conflict| EVAL_ALL[Score All Candidate Placements in Domain(V)<br/>Count hypothetical H1–H3 collisions with other variables<br/>Self-exclusion: exclude V from conflict count]
+    
+    EVAL_ALL --> TIE_BREAK{Identify Placements with Min Conflict Score<br/>Apply Non-Stationary Tie-Breaking}
+    TIE_BREAK -->|Ties Exist| PREFER_ALT[Prefer Moving to Alternative Placement<br/>over staying stationary in current slot] --> APPLY_MOVE
+    TIE_BREAK -->|Unique Min| CHOOSE_MIN[Select Minimum-Conflict Placement] --> APPLY_MOVE
+
+    APPLY_MOVE[Reassign Variable V = Chosen Placement<br/>iterations++, update cost history] --> ASSESS

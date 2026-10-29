@@ -1,0 +1,49 @@
+flowchart TD
+    START([solve_backtracking]) --> VAR_CHECK{All variables assigned?}
+    VAR_CHECK -->|Yes: Assignment Complete| VERIFY[validate_timetable H1–H9 + STRUCT<br/>Confirm 0 hard violations]
+    VERIFY --> SOLVED([Return Status: SOLVED<br/>Timetable Found])
+
+    VAR_CHECK -->|No: Unassigned Exist| BUDGET{Node or Time Limit Exceeded?}
+    BUDGET -->|Yes| LIMIT([Return Status: LIMIT_REACHED])
+
+    BUDGET -->|No| SELECT_VAR{Select Next Variable}
+
+    subgraph VAR_STRATEGY ["Variable Selection Strategies"]
+        direction TB
+        PLAIN_SEL["<b>Plain Baseline</b><br/>Static sequential index order"]
+        MRV_SEL["<b>MRV (Minimum Remaining Values)</b><br/>Variable with fewest currently legal placements"]
+        DEG_SEL["<b>MRV + Degree Heuristic</b><br/>MRV with tie-breaker: variable with most<br/>binary constraints on unassigned variables"]
+    end
+
+    SELECT_VAR -.-> PLAIN_SEL
+    SELECT_VAR -.-> MRV_SEL
+    SELECT_VAR -.-> DEG_SEL
+    PLAIN_SEL --> ITER_DOM
+    MRV_SEL --> ITER_DOM
+    DEG_SEL --> ITER_DOM
+
+    ITER_DOM[Get Candidate Placements for Variable<br/>Standard domain order or Soft-cost biased] --> DOM_LOOP{More placements in domain?}
+
+    DOM_LOOP -->|No: Domain Exhausted| BACKTRACK[Backtrack:<br/>Unassign current variable<br/>Restore any pruned domains<br/>Increment backtrack counter]
+    BACKTRACK --> RETURN_FAIL[Return False to caller]
+
+    DOM_LOOP -->|Yes: Try Next Placement| TRY_PLC[Assign Variable = Placement<br/>Increment assignments_tried]
+
+    TRY_PLC --> CHECK_CLASH{Incremental Clash Check<br/>H1: Teacher double-booked?<br/>H2: Class double-booked?<br/>H3: Room double-booked?}
+
+    CHECK_CLASH -->|Collision Detected| UNDO_LOCAL[Reject Placement] --> DOM_LOOP
+
+    CHECK_CLASH -->|No Collision| FC_CHECK{Forward Checking Enabled?}
+
+    FC_CHECK -->|No: Plain / MRV / Degree| RECURSE[Recurse: solve next variable<br/>nodes_explored++]
+    
+    FC_CHECK -->|Yes: mrv_degree_fc| PRUNE[Prune Placements from Active Domains<br/>of all unassigned constraint neighbors]
+    PRUNE --> WIPEOUT{Domain Wipeout?<br/>Any neighbor domain size == 0?}
+    
+    WIPEOUT -->|Yes: Wipeout Detected| RESTORE_DOM[Fail Fast!<br/>Restore pruned neighbour domains] --> UNDO_LOCAL
+
+    WIPEOUT -->|No: Domains Healthy| RECURSE
+
+    RECURSE --> REC_RESULT{Recursive Call Succeeded?}
+    REC_RESULT -->|Yes| SOLVED
+    REC_RESULT -->|No: Dead End| RESTORE_FC[Restore neighbour pruned domains<br/>if Forward Checking active] --> BACKTRACK

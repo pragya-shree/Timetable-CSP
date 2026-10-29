@@ -78,7 +78,7 @@ from core.storage import (
 # Page config
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="AI Timetable Scheduler",
+    page_title="HEURIX",
     page_icon="\U0001f4c5",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -1051,22 +1051,32 @@ def _render_generation_controls(validated_dataset: TimetableDataset | None):
         st.caption("Algorithm Overview:")
         st.markdown(ALGO_DESCRIPTIONS[algo_choice])
 
+    mc_iter = 5000
+    mc_time = 30.0
+    mc_seed = 42
+    mc_strat = "random"
+    sa_iter = 2000
+    sa_time = 30.0
+    sa_seed = 42
+    bt_nodes = 100_000
+    bt_time = 30.0
+
     with st.expander("Solver Parameters", expanded=False):
         if algo_choice == "Min-Conflicts":
             p1, p2, p3 = st.columns(3)
             mc_iter = p1.number_input("Max Iterations", 100, 100_000, 5000, 500, key="uni_mc_iter")
-            mc_time = p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_mc_time")
+            mc_time = float(p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_mc_time"))
             mc_seed = p3.number_input("Random Seed", 0, 999_999, 42, key="uni_mc_seed")
             mc_strat = st.selectbox("Initial Strategy", ["random", "greedy"], key="uni_mc_strat")
         elif algo_choice == "Hybrid CSP + Simulated Annealing":
             p1, p2, p3 = st.columns(3)
             sa_iter = p1.number_input("Max Iterations", 100, 50_000, 2000, 100, key="uni_sa_iter")
-            sa_time = p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_sa_time")
+            sa_time = float(p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_sa_time"))
             sa_seed = p3.number_input("Random Seed", 0, 999_999, 42, key="uni_sa_seed")
         else:
             p1, p2 = st.columns(2)
             bt_nodes = p1.number_input("Max Nodes", 1000, 10_000_000, 100_000, 10_000, key="uni_bt_nodes")
-            bt_time = p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_bt_time")
+            bt_time = float(p2.number_input("Time Limit (s)", 1, 300, 30, key="uni_bt_time"))
 
     # Run Solver Button
     if st.button("🚀 Generate Timetable", type="primary", use_container_width=True, key="uni_btn_generate"):
@@ -1074,26 +1084,33 @@ def _render_generation_controls(validated_dataset: TimetableDataset | None):
             if algo_choice == "Min-Conflicts":
                 gen_result = solve_min_conflicts(
                     dataset=validated_dataset,
-                    max_iterations=int(mc_iter),
+                    max_iterations=mc_iter,
                     time_limit_seconds=float(mc_time),
-                    random_seed=int(mc_seed),
+                    random_seed=mc_seed,
                     initial_strategy=mc_strat,
                     record_cost_history=True,
                 )
             elif algo_choice == "Hybrid CSP + Simulated Annealing":
                 gen_result = solve_hybrid_simulated_annealing(
                     dataset=validated_dataset,
-                    max_iterations=int(sa_iter),
+                    max_iterations=sa_iter,
                     time_limit_seconds=float(sa_time),
-                    random_seed=int(sa_seed),
+                    random_seed=sa_seed,
                     record_cost_history=True,
                 )
             else:
+                bt_opts = ALGORITHMS.get(algo_choice)
+                is_dict = isinstance(bt_opts, dict)
+                use_mrv = bt_opts.get("use_mrv", False) if is_dict else False
+                use_degree = bt_opts.get("use_degree", False) if is_dict else False
+                use_fc = bt_opts.get("use_fc", False) if is_dict else False
                 gen_result = solve_backtracking(
                     dataset=validated_dataset,
-                    max_nodes=int(bt_nodes),
+                    max_nodes=bt_nodes,
                     time_limit_seconds=float(bt_time),
-                    **(ALGORITHMS[algo_choice] or {}),
+                    use_mrv=use_mrv,
+                    use_degree=use_degree,
+                    use_fc=use_fc,
                 )
 
         # Independent Solution Verification
@@ -1190,8 +1207,8 @@ NAV_ICONS = {
 }
 
 with st.sidebar:
-    st.title("\U0001f4c5 Timetable Scheduler")
-    st.caption("AI-Powered CSP & Local Search Engine")
+    st.title("HEURIX")
+    st.caption("smarter search ,better schedule")
     st.markdown("---")
 
     # Handle programmatic navigation
@@ -1227,11 +1244,10 @@ with st.sidebar:
 # 1. DASHBOARD
 # ===========================================================================
 if selected_nav == "Dashboard":
-    st.title("\U0001f4ca Dashboard")
-    st.markdown("Welcome to the **AI-Based College Timetable Scheduler**.")
+    st.title("HEURIX")
+    st.caption("smarter search ,better schedule")
 
     # Section A: Active Timetable Status
-    st.header("Active Timetable Status")
     active_tt = st.session_state.get("active_timetable")
     if active_tt is not None:
         tt_name = st.session_state.get("active_timetable_name", active_tt.dataset.name)
@@ -1261,11 +1277,6 @@ if selected_nav == "Dashboard":
                 st.warning("You have unsaved edits on this timetable.")
     else:
         st.info("No timetable is currently active.")
-        st.markdown(
-            "Welcome to the **AI-Based College Timetable Scheduler**! "
-            "Get started by configuring your institution and generating a timetable in **Create Timetable**, "
-            "or open a previously saved timetable from **My Timetables**."
-        )
         ec1, ec2, _ = st.columns([1, 1, 1])
         with ec1:
             if st.button("🛠️ Create Timetable", use_container_width=True, type="primary"):
@@ -1449,7 +1460,7 @@ elif selected_nav == "Create Timetable":
             with tg2:
                 periods_per_day = st.number_input("Periods Per Day", min_value=2, max_value=12, value=int(cfg.get("periods_per_day", 6)), key="wiz_periods_day")
             with tg3:
-                default_lunch = st.number_input("Default Lunch Period", min_value=1, max_value=int(periods_per_day), value=min(int(cfg.get("default_lunch_slot", 4)), int(periods_per_day)), key="wiz_def_lunch")
+                default_lunch = st.number_input("Default Lunch Period", min_value=1, max_value=periods_per_day, value=min(int(cfg.get("default_lunch_slot", 4)), periods_per_day), key="wiz_def_lunch")
 
             blocked_str = st.text_input("Global Blocked Slots (e.g. Assembly)", value=str(cfg.get("blocked_periods", "")), help="Format: 'Monday P1, Wednesday P4'", key="wiz_blocked_slots")
 
@@ -1610,7 +1621,7 @@ elif selected_nav == "Create Timetable":
             with tg2:
                 periods_per_day = st.number_input("Periods Per Day", min_value=2, max_value=12, value=int(cfg.get("periods_per_day", 6)), key="classic_periods")
             with tg3:
-                default_lunch = st.number_input("Default Lunch Period", min_value=1, max_value=int(periods_per_day), value=min(int(cfg.get("default_lunch_slot", 4)), int(periods_per_day)), key="classic_lunch")
+                default_lunch = st.number_input("Default Lunch Period", min_value=1, max_value=periods_per_day, value=min(int(cfg.get("default_lunch_slot", 4)), periods_per_day), key="classic_lunch")
             blocked_str = st.text_input("Global Blocked Slots", value=str(cfg.get("blocked_periods", "")), key="classic_blocked")
             cfg["name"] = ds_name
             cfg["days"] = [d.strip() for d in days_str.split(",") if d.strip()]

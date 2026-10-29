@@ -1,0 +1,48 @@
+flowchart TD
+    subgraph INPUT_SOURCES ["User Input Channels"]
+        WIZARD["<b>Quick Setup Wizard</b><br/>5 Sequential Steps<br/>1. Grid & Breaks<br/>2. Classes & Subjects<br/>3. Teachers & Matrix<br/>4. Rooms & Capacities<br/>5. Solve & Verify"]
+        TABLE_ED["<b>Classic Table Editor</b><br/>Direct tabular dataframes<br/>Classes, Teachers,<br/>Subjects, Rooms"]
+        TSV_PASTE["<b>Excel / Sheets Clipboard Paste</b><br/>Direct TSV text paste<br/>into Streamlit textarea"]
+        FILE_UPLOAD["<b>File Upload Ingestion</b><br/>• CSV files per entity<br/>• Single-table XLSX<br/>• Complete Multi-Sheet Workbook (.xlsx)"]
+        MATRIX_UI["<b>Interactive Availability Matrix</b><br/>Visual Streamlit click grid<br/>Two-way sync with slot strings"]
+        TEMPLATES["<b>Download Starter Templates</b><br/>Blank/Sample CSV, XLSX,<br/>or Combined Workbook"]
+    end
+
+    subgraph BULK_ENGINE ["Processing Engine (core/bulk_importer.py)"]
+        PARSE["Delimiter Sniffing & Parsing<br/>TSV (tab), CSV (comma), Excel Sheet Reader"]
+        NORM["Column Alias Normalization<br/>Maps arbitrary user headers<br/>(e.g., 'code', 'hours', 'cap', 'faculty')<br/>to Canonical Schema Columns"]
+        FALLBACK["Default Fallback Injection<br/>Injects sensible defaults for optional fields<br/>(e.g., strength=30, lunch=4, load=14)"]
+        ROW_VAL["Row-Level Validation (validate_bulk_rows)<br/>Generates accepted DataFrame<br/>Records RowError objects with line numbers"]
+    end
+
+    subgraph BUILDER_ENGINE ["Institutional Verification (core/custom_builder.py)"]
+        SLOT_PARSER["Slot Coordinate Parsing (parse_slot_string)<br/>Converts 'Mon P1, Tue P3' to [(0,0), (1,2)]"]
+        SYNTAX_VAL["Syntax & Field Checks<br/>Positive durations, non-empty IDs"]
+        REL_VAL["Relational Integrity Checks<br/>• Teacher qualification for assigned subject<br/>• Class subject requirements reference valid subjects<br/>• Room capacity vs class strength"]
+        FEAS_CHECK["Mathematical Feasibility (check_dataset_feasibility)<br/>• Total class hours <= Total room-slots<br/>• Lab hours <= Lab room-slots"]
+    end
+
+    TEMPLATES -.->|User downloads & fills| FILE_UPLOAD
+    TSV_PASTE --> PARSE
+    FILE_UPLOAD --> PARSE
+    PARSE --> NORM
+    NORM --> FALLBACK
+    FALLBACK --> ROW_VAL
+
+    ROW_VAL -->|Rejected Rows Detected| DIAG_ERR[Display Row-Level Errors in UI<br/>Keep valid rows intact for editing]
+    DIAG_ERR --> TABLE_ED
+
+    ROW_VAL -->|Accepted Clean Rows| MERGE[Merge into Custom Tables]
+    WIZARD --> MERGE
+    TABLE_ED --> MERGE
+    MATRIX_UI --> SLOT_PARSER
+    SLOT_PARSER --> MERGE
+
+    MERGE --> SYNTAX_VAL
+    SYNTAX_VAL --> REL_VAL
+    REL_VAL --> FEAS_CHECK
+
+    FEAS_CHECK -->|Violations Found| UI_WARN[Display Actionable Capacity / Integrity Alerts]
+    UI_WARN --> TABLE_ED
+
+    FEAS_CHECK -->|Checks Pass| DATASET[Construct TimetableDataset<br/>Ready for AI Solver Execution]
