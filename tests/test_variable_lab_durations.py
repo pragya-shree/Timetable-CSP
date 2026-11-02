@@ -471,6 +471,7 @@ def test_backtracking_preserves_atomic_lab_blocks(multi_lab_solvable_dataset):
     res = solve_backtracking_mrv_degree_fc(multi_lab_solvable_dataset)
     assert res.success is True
     assert res.hard_violations == 0
+    assert res.timetable is not None
 
     val = validate_timetable(res.timetable)
     assert val.is_valid is True
@@ -503,12 +504,14 @@ def test_min_conflicts_preserves_atomic_lab_blocks(multi_lab_solvable_dataset):
     res = solve_min_conflicts(multi_lab_solvable_dataset, max_iterations=2000, random_seed=42)
     assert res.success is True
     assert res.final_hard_violations == 0
+    assert res.timetable is not None
 
     val = validate_timetable(res.timetable)
     assert val.is_valid is True
 
     lab3_var = next(v for v in res.timetable.assignments if v.subject_id == "LAB_3P")
     p3 = res.timetable.assignments[lab3_var]
+    assert p3 is not None
     periods3 = p3.get_occupied_periods(lab3_var.duration)
     assert len(periods3) == 3
     assert periods3 == list(range(periods3[0], periods3[0] + 3))
@@ -524,12 +527,14 @@ def test_simulated_annealing_preserves_atomic_lab_blocks(multi_lab_solvable_data
     )
     assert res.success is True
     assert res.hard_violations == 0
+    assert res.timetable is not None
 
     val = validate_timetable(res.timetable)
     assert val.is_valid is True
 
     lab3_var = next(v for v in res.timetable.assignments if v.subject_id == "LAB_3P")
     p3 = res.timetable.assignments[lab3_var]
+    assert p3 is not None
     periods3 = p3.get_occupied_periods(lab3_var.duration)
     assert len(periods3) == 3
     assert periods3 == list(range(periods3[0], periods3[0] + 3))
@@ -543,6 +548,7 @@ def test_ui_displays_complete_lab_duration(multi_lab_solvable_dataset):
     """UI _make_grid and _build_timetable_html must display 1 start card and N-1 continuation cards."""
     res = solve_backtracking_mrv_degree_fc(multi_lab_solvable_dataset)
     assert res.success is True
+    assert res.timetable is not None
     tt = res.timetable
 
     # Dynamically import UI functions from app.py
@@ -552,6 +558,8 @@ def test_ui_displays_complete_lab_duration(multi_lab_solvable_dataset):
     sys.modules["streamlit"] = mock.MagicMock()
 
     spec = importlib.util.spec_from_file_location("app_module", Path("app.py"))
+    assert spec is not None
+    assert spec.loader is not None
     app_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(app_mod)
 
@@ -562,6 +570,7 @@ def test_ui_displays_complete_lab_duration(multi_lab_solvable_dataset):
     # Locate Lab 3P placement
     lab3_var = next(v for v in tt.assignments if v.subject_id == "LAB_3P")
     p3 = tt.assignments[lab3_var]
+    assert p3 is not None
     day_name = multi_lab_solvable_dataset.time_structure.days[p3.day]
     start_p = p3.start_period
 
