@@ -1,6 +1,17 @@
 {
-  "extraPaths": [
-    "C:/Users/pragy/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages",
-    "C:/Users/pragy/AppData/Local/Programs/Python/Python314/Lib/site-packages"
-  ]
+  "include": [
+    "app.py",
+    "run_solver.py",
+    "core",
+    "experiments",
+    "tests"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".pytest_cache",
+    ".venv",
+    "venv"
+  ],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic"
 }

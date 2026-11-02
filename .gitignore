@@ -43,8 +43,12 @@ dist/
 build/
 *.egg-info/
 
-# Experiment result artifacts (large data, images)
-experiments/results/
+# Experiment result artifacts (preserve curated summary benchmarks for web UI)
+experiments/results/*
+!experiments/results/experiment_summary.csv
+!experiments/results/experiment_runs.csv
+!experiments/results/experiment_metadata.json
+!experiments/results/min_conflicts_cost_vs_iterations.png
 
 # Documentation PDFs (optional)
 *.pdf
